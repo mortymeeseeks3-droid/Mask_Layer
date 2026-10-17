@@ -195,14 +195,14 @@ function rings(p){const out=[];let n=[],cur=null;
   else if(w=='c'&&cur)cur.push(...bezv(cur[cur.length-1],[+n[0],+n[1]],[+n[2],+n[3]],[+n[4],+n[5]]));
   else if(w=='h')cur=null;
   n=[]}else n.push(w)}
- return out.filter(r=>r.length>2)}
+ return out.map(r=>r.map(q=>[Math.round(q[0]*100)/100,Math.round(q[1]*100)/100]).filter((q,i,a)=>!i||q[0]!=a[i-1][0]||q[1]!=a[i-1][1])).filter(r=>r.length>2)}
 const area=r=>{let A=0;for(let i=0;i<r.length;i++){const j=(i+1)%r.length;A+=r[i][0]*r[j][1]-r[j][0]*r[i][1]}return A/2};
 function region(s,rs){
  if(!rs.length)return[];
- if(s.eo)return PC.xor(...rs.map(r=>[[r]]));
+ if(s.eo){try{return PC.xor(...rs.map(r=>[[r]]))}catch(e){return rs.map(r=>[r])}}
  const big=rs.reduce((a,r)=>Math.abs(area(r))>Math.abs(area(a))?r:a),sg=Math.sign(area(big));
  const pos=rs.filter(r=>Math.sign(area(r))==sg).map(r=>[[r]]),neg=rs.filter(r=>Math.sign(area(r))!=sg).map(r=>[[r]]);
- let u=PC.union(...pos);if(neg.length&&u.length)u=PC.difference(u,PC.union(...neg));return u}
+ let u;try{u=PC.union(...pos)}catch(e){return pos.map(p=>p[0])}if(neg.length&&u.length){try{u=PC.difference(u,PC.union(...neg))}catch(e){}}return u}
 function visPaths(shapes,S){const info=[];
  const get=i=>info[i]||(info[i]=(()=>{const rs=rings(shapes[i].p);let b=[1e9,1e9,-1e9,-1e9];rs.forEach(r=>r.forEach(q=>{b=[Math.min(b[0],q[0]),Math.min(b[1],q[1]),Math.max(b[2],q[0]),Math.max(b[3],q[1])]}));return{rs,b}})());
  const out=[];
@@ -210,7 +210,7 @@ function visPaths(shapes,S){const info=[];
   for(let j=i+1;j<shapes.length;j++){if(S.has(shapes[j].k))continue;const b=get(j).b;if(b[0]<a.b[2]&&b[2]>a.b[0]&&b[1]<a.b[3]&&b[3]>a.b[1])over.push(j)}
   if(!over.length){out.push(s.p);return}
   let R=region(s,a.rs);const O=over.map(j=>region(shapes[j],get(j).rs)).filter(r=>r.length);
-  if(O.length&&R.length)R=PC.difference(R,...O);
+  if(O.length&&R.length){try{R=PC.difference(R,...O)}catch(e1){let ok=0;for(const o of O){try{R=PC.difference(R,o);ok++}catch(e2){}}if(!ok){out.push(s.p);return}}}
   R.forEach(poly=>poly.forEach(ring=>out.push(ring.map((q,k)=>(+q[0].toFixed(4))+' '+(+q[1].toFixed(4))+(k?' l':' m')).join(' ')+' h')))});
  return out.join(' ')}
 
