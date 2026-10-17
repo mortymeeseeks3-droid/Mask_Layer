@@ -36,6 +36,7 @@ button{font:inherit;color:var(--ink);cursor:pointer}
 .modes button.on small{color:#ffd6f6}
 .modes i{font:800 22px Syne,sans-serif;font-style:normal;color:var(--mag);text-shadow:0 0 14px var(--mag);width:26px}
 #dwrap{margin-top:12px;font-size:13px}
+.ctl{display:flex;gap:18px;margin-top:12px;flex-wrap:wrap}.ctl label{font-size:13px;color:var(--mut)}.ctl select,.ctl input{font:inherit;color:var(--ink);background:#150c20;border:1px solid rgba(255,43,214,.5);border-radius:8px;padding:5px 8px;width:auto}.ctl input{width:64px}
 #spots{max-height:170px;overflow:auto}
 label.row{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
 label.row input{width:18px;height:18px;accent-color:#ff2bd6}
@@ -70,10 +71,11 @@ label.row input{width:18px;height:18px;accent-color:#ff2bd6}
 <aside class="side">
  <div class="card"><p class="lab">01 · Artwork</p><input type="file" id="f" accept="application/pdf"><div id="info">Drop in a PDF to begin.</div></div>
  <div class="card" id="mcard" hidden><p class="lab">02 · Mode</p>
-  <div class="modes"><button id="m1" class="on"><i>1</i><span>White<small>Copy all white areas to spot 5</small></span></button><button id="m2"><i>2</i><span>Spot list<small>Cut ticked spot colours out</small></span></button><button id="m3"><i>3</i><span>Picker<small>Click artwork, knock out the colour</small></span></button></div>
+  <div class="modes"><button id="m1" class="on"><i>1</i><span>White<small>Copy all white areas to spot 5</small></span></button><button id="m2"><i>2</i><span>Spot list<small>Cut ticked spot colours out</small></span></button><button id="m3"><i>3</i><span>Picker<small>Click artwork, knock out the colour</small></span></button><button id="m4"><i>4</i><span>Raster<small>Pixels with colour → solid spot 5</small></span></button></div>
   <div id="dwrap"><div id="d1" class="mut">Every white-filled area is copied to a new layer, filled and stroked 0.1&nbsp;mm in spot “5”, overprint on.</div>
   <div id="d2" hidden><div class="mut">Full-page spot “5” rectangle with the ticked spot colours cut out.</div><div id="spots"></div></div>
-  <div id="d3" hidden><div class="mut">Click the preview to pick a colour. Only its visible area is cut from the spot “5” rectangle; anything painted on top stays filled.</div><div class="chips" id="chips"></div></div></div>
+  <div id="d3" hidden><div class="mut">Click the preview to pick a colour. Only its visible area is cut from the spot “5” rectangle; anything painted on top stays filled.</div><div class="chips" id="chips"></div></div>
+  <div id="d4" hidden><div class="mut">Renders each page, finds every pixel with more than the threshold of colour, and pastes them as a 100% spot “5” bitmap layer above the artwork (overprint on).</div><div class="ctl"><label>Resolution <select id="dpi"><option>150</option><option selected>300</option><option>600</option></select> dpi</label><label>Threshold <input id="thr" type="number" value="1" min="0" max="100" step="0.5"> %</label></div></div></div>
  </div>
  <div class="card" id="gcard" hidden><p class="lab">03 · Output</p><button class="go" id="go">Create PDF</button><button class="go alt" id="sv" hidden>Save PDF</button><div id="st" class="mut"></div></div>
 </aside>
@@ -267,7 +269,7 @@ const p2d=s=>{if(s.d)return s.d;const d=new Path2D(),t=s.p.split(' ');let n=[];
  return s.d=d};
 const swc=k=>k=='W'?'#ffffff':k[0]=='C'?k.slice(2):'#e0457b';
 const lbl=k=>k=='W'?'White':k[0]=='C'?k.slice(2):k.slice(2);
-function sel(){return mode==1?new Set(['W']):mode==3?picked:new Set([...document.querySelectorAll('#spots input:checked')].map(i=>i.value))}
+function sel(){return mode==4?new Set():mode==1?new Set(['W']):mode==3?picked:new Set([...document.querySelectorAll('#spots input:checked')].map(i=>i.value))}
 async function render(){
  const my=++tk,d=showRes?rj:pj;if(!d)return;
  try{const pg=await d.getPage(Math.min(pi,d.numPages)),w=1300*(devicePixelRatio||1),v0=pg.getViewport({scale:1});
@@ -303,24 +305,34 @@ function nav(d){const n=(showRes?rj:pj)?.numPages||an.length;pi=Math.max(1,Math.
 $('pv').onclick=()=>nav(-1);$('nx').onclick=()=>nav(1);
 $('tg').onclick=()=>{showRes=!showRes;$('tg').textContent='Showing: '+(showRes?'result':'original');nav(0)};
 $('f').onchange=e=>e.target.files[0]&&load(e.target.files[0]);
-function setMode(m){mode=m;[1,2,3].forEach(i=>{$('m'+i).classList.toggle('on',i==m);$('d'+i).hidden=i!=m});if(showRes){showRes=false;$('tg').textContent='Showing: original';nav(0)}else draw()}
-[1,2,3].forEach(i=>$('m'+i).onclick=()=>setMode(i));
+function setMode(m){mode=m;[1,2,3,4].forEach(i=>{$('m'+i).classList.toggle('on',i==m);$('d'+i).hidden=i!=m});if(showRes){showRes=false;$('tg').textContent='Showing: original';nav(0)}else draw()}
+[1,2,3,4].forEach(i=>$('m'+i).onclick=()=>setMode(i));
 $('spots').onchange=draw;
+async function makeMask(i){
+ const pg=await pj.getPage(i+1),v=pg.getViewport({scale:(+$('dpi').value||300)/72,rotation:0}),thr=Math.max(0,+$('thr').value||0);
+ const c=document.createElement('canvas');c.width=Math.min(16000,Math.ceil(v.width));c.height=Math.min(16000,Math.ceil(v.height));
+ const x=c.getContext('2d',{willReadFrequently:true});x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+ await pg.render({canvasContext:x,viewport:pg.getViewport({scale:c.width/(pg.view[2]-pg.view[0]),rotation:0})}).promise;
+ const w=c.width,h=c.height,d=x.getImageData(0,0,w,h).data,rb=(w+7)>>3,bits=new Uint8Array(rb*h).fill(255),lim=255-thr*2.55;let count=0;
+ for(let y=0;y<h;y++)for(let X=0;X<w;X++){const k=(y*w+X)*4;if(Math.min(d[k],d[k+1],d[k+2])<=lim&&(thr>0||Math.min(d[k],d[k+1],d[k+2])<255)){bits[y*rb+(X>>3)]&=~(128>>(X&7));count++}}
+ return{bits,w,h,view:pg.view,count}}
 async function build(){
- const doc=await PDFDocument.load(bytes),ctx=doc.context,pages=doc.getPages(),S=sel();
+ const doc=await PDFDocument.load(bytes),ctx=doc.context,pages=doc.getPages(),S=sel(),masks=[];
+ if(mode==4)for(let i=0;i<pages.length;i++){$('st').textContent=`Rasterising page ${i+1} / ${pages.length}…`;masks.push(await makeMask(i))}
  const ocg=ctx.register(ctx.obj({Type:'OCG',Name:PDFString.of('Spot 5')}));
  doc.catalog.set(PDFName.of('OCProperties'),ctx.obj({OCGs:[ocg],D:{Order:[ocg],ON:[ocg]}}));
  const cs=ctx.register(ctx.obj(['Separation','5','DeviceCMYK',{FunctionType:2,Domain:[0,1],C0:[0,0,0,0],C1:[0,1,1,0],N:1}]));
  const gs=ctx.register(ctx.obj({Type:'ExtGState',Name:'GS5',OP:true,op:true,OPM:1}));
  let n=0;
  pages.forEach((pg,i)=>{
-  const sh=an[i].shapes.filter(s=>S.has(s.k));let body;
-  if(mode==1){if(!sh.length)return;body=sh.map(s=>s.p+(s.eo?' B*':' B')).join('\n')}
+  const sh=an[i].shapes.filter(s=>S.has(s.k));let body,imRef,imName;
+  if(mode==4){const k=masks[i];if(!k||!k.count)return;imRef=ctx.register(ctx.flateStream(k.bits,{Type:'XObject',Subtype:'Image',Width:k.w,Height:k.h,ImageMask:true,BitsPerComponent:1}));imName='ImS'+i;const[x0,y0,x1,y1]=k.view;body=`q ${x1-x0} 0 0 ${y1-y0} ${x0} ${y0} cm /${imName} Do Q`;n++}
+  else if(mode==1){if(!sh.length)return;body=sh.map(s=>s.p+(s.eo?' B*':' B')).join('\n')}
   else{const m=pg.getMediaBox();body=`${m.x} ${m.y} ${m.width} ${m.height} re\n`+(mode==3?visPaths(an[i].shapes,S):sh.map(s=>s.p).join('\n'))+'\nB*'}
   n+=sh.length;
   let res=pg.node.Resources();if(!res){res=ctx.obj({});pg.node.set(PDFName.of('Resources'),res)}
   const add=(g,k,v)=>{let d=res.lookup(PDFName.of(g));if(!(d instanceof PDFDict)){d=ctx.obj({});res.set(PDFName.of(g),d)}d.set(PDFName.of(k),v)};
-  add('ColorSpace','CS5',cs);add('ExtGState','GS5',gs);add('Properties','MC0',ocg);
+  add('ColorSpace','CS5',cs);add('ExtGState','GS5',gs);add('Properties','MC0',ocg);if(imRef)add('XObject',imName,imRef);
   const raw=pg.node.get(PDFName.of('Contents')),r=ctx.lookup(raw),refs=r instanceof PDFArray?r.asArray():raw?[raw]:[];
   const layer=`/OC /MC0 BDC\nq /GS5 gs /CS5 cs 1 scn /CS5 CS 1 SCN 0.2835 w 1 j\n${body}\nQ\nEMC\n`;
   const arr=PDFArray.withContext(ctx);arr.push(ctx.register(ctx.stream('q\n')));refs.forEach(x=>arr.push(x));
@@ -330,7 +342,7 @@ $('go').onclick=async()=>{const st=$('st');st.className='mut';st.textContent='Wo
  try{const{out,n}=await build();resBytes=out;
   rj=await pdfjsLib.getDocument({data:out.slice(),disableWorker:true}).promise;
   showRes=true;$('tg').hidden=false;$('tg').textContent='Showing: result';$('sv').hidden=false;nav(0);
-  st.className='ok';st.textContent=`Done · ${n} shape(s) ${mode==1?'on':'cut from'} the Spot 5 layer. Check the preview, then Save PDF.`}
+  st.className='ok';st.textContent=`Done · ${n} ${mode==4?'page(s) rasterised onto':mode==1?'shape(s) on':'shape(s) cut from'} the Spot 5 layer. Check the preview, then Save PDF.`}
  catch(e){st.className='err';st.textContent='Failed: '+(e&&e.message||e)}};
 $('sv').onclick=async()=>{if(!resBytes)return;const fn=name+'-spot5.pdf',blob=new Blob([resBytes],{type:'application/pdf'});
  try{const dl=window.claude&&claude.use?await claude.use('downloads').catch(()=>null):null;
