@@ -56,11 +56,13 @@ label.row input{width:18px;height:18px;accent-color:#ff2bd6}
 .bar .sm:hover{border-color:var(--mag);box-shadow:0 0 14px rgba(255,43,214,.4)}
 #pn{font:700 12px Syne,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);min-width:120px;text-align:center}
 #tg{margin-left:auto;border-color:rgba(255,43,214,.55)!important;color:var(--mag2)}
-.view{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;border-radius:12px;padding:16px;
+.view{flex:1;min-height:0;display:flex;overflow:auto;border-radius:12px;padding:16px;
  background:conic-gradient(from 90deg at 1px 1px,transparent 90deg,rgba(255,255,255,.04) 0) 0 0/24px 24px,#0b0712;box-shadow:inset 0 0 60px rgba(0,0,0,.7)}
 #pcard{display:flex;flex-direction:column;min-height:0;height:100%}#pcard[hidden],#mcard[hidden],#gcard[hidden]{display:none}
-#wrap{position:relative;display:inline-block;line-height:0;border-radius:3px;box-shadow:0 0 0 1px rgba(255,43,214,.5),0 0 50px rgba(255,43,214,.28),0 30px 60px rgba(0,0,0,.7)}
-#cv{display:block;max-width:100%;max-height:calc(100vh - 230px);width:auto;height:auto;background:#fff}
+#wrap{position:relative;display:inline-block;margin:auto;flex:none;line-height:0;border-radius:3px;box-shadow:0 0 0 1px rgba(255,43,214,.5),0 0 50px rgba(255,43,214,.28),0 30px 60px rgba(0,0,0,.7)}
+#cv{display:block;width:100%;height:auto;background:#fff}
+#wrap,#wrap *{cursor:crosshair!important}
+.zb{padding:8px 12px!important;min-width:38px}#zl{font:700 12px Syne,sans-serif;color:var(--mut);min-width:48px;text-align:center}
 #ov{position:absolute;left:0;top:0;width:100%;height:100%;cursor:crosshair}
 #pmsg{margin-top:10px;min-height:20px;font-size:13px;color:var(--mut)}
 #empty{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;color:var(--mut)}
@@ -84,15 +86,16 @@ label.row input{width:18px;height:18px;accent-color:#ff2bd6}
   <div class="mut" style="margin-top:4px">Click the preview to pick colours; only those colours (and their fade to white) go into the mask. Nothing picked = every coloured pixel.</div><div class="chips" id="rchips"></div></div></div>
  </div>
  <div class="card" id="tcard" hidden><p class="lab">03 · Tools</p>
- <div class="ctl" style="margin-top:0"><label>Spread <input id="spr" type="number" value="0" step="0.05" min="-5" max="5"> mm</label><label><input type="checkbox" id="inv"> Invert selection</label></div>
- <div class="mut" style="margin-top:6px">Spread grows the mask (raster mode also chokes with a negative value). Invert fills the selection instead of cutting it out.</div>
+ <div class="ctl" style="margin-top:0"><label>Vector stroke <input id="stk" type="number" value="0.1" step="0.05" min="0" max="5"> mm</label><label>Raster spread <input id="spr" type="number" value="0" step="0.05" min="-5" max="5"> mm</label></div>
+ <div class="ctl"><label><input type="checkbox" id="vis" checked> Visible areas only</label><label><input type="checkbox" id="inv"> Invert selection</label></div>
+ <div class="mut" style="margin-top:6px">Vector stroke sets the outline width on the new layer (0 = fill only). Raster spread grows the bitmap mask, or chokes it with a negative value. Visible-only cuts shapes off where another colour covers them. Invert fills the selection instead of cutting it out.</div>
  <div class="ctl"><label>Spot name <input id="sname" value="5" style="width:90px"></label><label>Preview colour <input id="alt" type="color" value="#ff2bd6" style="padding:0;width:40px;height:28px"></label></div>
  <div class="ctl"><input id="pname" placeholder="preset name" style="width:110px"><button class="sm2" id="psave">Save</button><select id="plist"></select><button class="sm2" id="pload">Load</button></div></div>
 <div class="card" id="gcard" hidden><p class="lab">04 · Output</p><button class="go" id="go">Create PDF</button><button class="go alt" id="sv" hidden>Save PDF</button><button class="go alt" id="msv" hidden>Save mask-only PDF</button><button class="go alt" id="bt">Batch process files…</button><input type="file" id="bf" accept="application/pdf" multiple hidden><div id="st" class="mut"></div></div>
 </aside>
 <main class="card stage">
  <div id="pcard" hidden>
-  <div class="bar"><button class="sm" id="pv">‹ Prev</button><span id="pn"></span><button class="sm" id="nx">Next ›</button><button class="sm" id="tg" hidden>View: Original</button></div>
+  <div class="bar"><button class="sm" id="pv">‹ Prev</button><span id="pn"></span><button class="sm" id="nx">Next ›</button><span style="width:14px"></span><button class="sm zb" id="zo">−</button><span id="zl">100%</span><button class="sm zb" id="zi">+</button><button class="sm" id="zf">Fit</button><button class="sm" id="tg" hidden>View: Original</button></div>
   <div class="view"><div id="wrap"><canvas id="cv"></canvas><canvas id="ov"></canvas></div></div>
   <div id="pmsg"></div>
  </div>
@@ -281,6 +284,9 @@ const p2d=s=>{if(s.d)return s.d;const d=new Path2D(),t=s.p.split(' ');let n=[];
 const swc=k=>k=='W'?'#ffffff':k[0]=='C'?k.slice(2):'#e0457b';
 const lbl=k=>k=='W'?'White':k[0]=='C'?k.slice(2):k.slice(2);
 function sel(){return mode==4?new Set():mode==1?new Set(['W']):mode==3?picked:new Set([...document.querySelectorAll('#spots input:checked')].map(i=>i.value))}
+let zoom=1,asp=.77,zt=0,visMemo={},dragged=false,drag=null;
+function layoutWrap(a){const vw=$('wrap').parentElement,aw=vw.clientWidth-32,ah=vw.clientHeight-32,fw=Math.max(120,Math.min(aw,ah*a)),W=fw*zoom;$('wrap').style.width=W+'px';$('zl').textContent=Math.round(zoom*100)+'%';return W}
+function setZoom(z,cx,cy){z=Math.max(1,Math.min(16,z));if(z==zoom)return;const wr=$('wrap'),vw=wr.parentElement,r=wr.getBoundingClientRect(),fx_=cx==null?.5:(cx-r.left)/r.width,fy_=cy==null?.5:(cy-r.top)/r.height;zoom=z;layoutWrap(asp);const r2=wr.getBoundingClientRect();vw.scrollLeft+=fx_*(r2.width-r.width);vw.scrollTop+=fy_*(r2.height-r.height);clearTimeout(zt);zt=setTimeout(render,200)}
 let view='orig',mj=null,maskBytes=null,allKeys=new Set();
 const VN={orig:'Original',res:'Result',mask:'Mask only',sim:'Overprint sim'};
 const docFor=v=>v=='res'?rj:v=='mask'?mj:pj;
@@ -288,7 +294,7 @@ const updTg=()=>{$('tg').textContent='View: '+VN[view]};
 const cov=(x,c)=>{const d=x.getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>8)n++;return `Mask covers ${(100*n/(d.length/4)).toFixed(1)}% of this page`};
 async function render(){
  const my=++tk;if(!pj)return;
- try{const d=docFor(view);if(!d)return;const pg=await d.getPage(Math.min(pi,d.numPages)),w=1300*(devicePixelRatio||1),v0=pg.getViewport({scale:1}),v=pg.getViewport({scale:w/v0.width}),cv=$('cv');if(my!=tk)return;
+ try{const d=docFor(view);if(!d)return;const pg=await d.getPage(Math.min(pi,d.numPages)),v0=pg.getViewport({scale:1}),cssW=(asp=v0.width/v0.height,layoutWrap(asp)),w=Math.min(6000,Math.max(1300,cssW*(devicePixelRatio||1))),v=pg.getViewport({scale:w/v0.width}),cv=$('cv');if(my!=tk)return;
   cv.width=$('ov').width=v.width;cv.height=$('ov').height=v.height;vp=v;const x=cv.getContext('2d',{willReadFrequently:view=='mask'});
   await pg.render({canvasContext:x,viewport:v,background:view=='mask'?'rgba(0,0,0,0)':'#ffffff'}).promise;if(my!=tk)return;
   let msg='';
@@ -300,7 +306,9 @@ async function render(){
  catch(e){$('pmsg').innerHTML='<span class="err">Preview failed: '+(e.message||e)+'</span>'}}
 function draw(){const ov=$('ov'),c=ov.getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,ov.width,ov.height);
  if(view!='orig'||!vp||!an[pi-1])return;const S=sel();c.setTransform(...vp.transform);c.fillStyle='rgba(0,210,255,.6)';
- for(const s of an[pi-1].shapes)if(S.has(s.k))c.fill(p2d(s),s.eo?'evenodd':'nonzero');c.setTransform(1,0,0,1,0,0)}
+ let done=false;
+ if(mode<=3&&$('vis').checked&&S.size){try{const key=pi+'|'+[...S].sort().join('\u0001');if(visMemo.key!=key)visMemo={key,d:p2d({p:visPaths(an[pi-1].shapes,S)})};c.fill(visMemo.d,'evenodd');done=true}catch(e){}}
+ if(!done)for(const s of an[pi-1].shapes)if(S.has(s.k))c.fill(p2d(s),s.eo?'evenodd':'nonzero');c.setTransform(1,0,0,1,0,0)}
 
 function chips(){$('chips').innerHTML=[...picked].map(k=>`<button class="chip" data-k="${k}"><span class="sw" style="background:${swc(k)}"></span>${lbl(k)} ✕</button>`).join('')+(picked.size?'<button class="chip" data-k="*">Clear all</button>':'<span class="mut">Nothing picked yet</span>')}
 $('chips').onclick=e=>{const b=e.target.closest('button');if(!b)return;b.dataset.k=='*'?picked.clear():picked.delete(b.dataset.k);chips();draw()};
@@ -309,7 +317,7 @@ function rchips(){$('rchips').innerHTML=rpicked.map((c,i)=>`<button class="chip"
 $('rchips').onclick=e=>{const b=e.target.closest('button');if(!b)return;b.dataset.i=='*'?rpicked=[]:rpicked.splice(+b.dataset.i,1);rchips()};
 const rgbOf=k=>[3,5,7].map(i=>parseInt(k.slice(i,i+2),16));
 $('tol').oninput=()=>$('tolv').textContent=$('tol').value;
-$('ov').onclick=e=>{if(view!='orig'||!vp||(mode!=3&&mode!=4))return;const ov=$('ov'),r=ov.getBoundingClientRect(),x=(e.clientX-r.left)*ov.width/r.width,y=(e.clientY-r.top)*ov.height/r.height,c=ov.getContext('2d');
+$('ov').onclick=e=>{if(dragged){dragged=false;return}if(view!='orig'||!vp||(mode!=3&&mode!=4))return;const ov=$('ov'),r=ov.getBoundingClientRect(),x=(e.clientX-r.left)*ov.width/r.width,y=(e.clientY-r.top)*ov.height/r.height,c=ov.getContext('2d');
  if(mode==4){const p=$('cv').getContext('2d').getImageData(Math.max(0,Math.min(ov.width-1,Math.round(x))),Math.max(0,Math.min(ov.height-1,Math.round(y))),1,1).data,col=[p[0],p[1],p[2]],i=rpicked.findIndex(q=>Math.hypot(q[0]-col[0],q[1]-col[1],q[2]-col[2])<6);i>=0?rpicked.splice(i,1):rpicked.push(col);$('pmsg').textContent=(i>=0?'Un-picked':'Picked')+' rgb('+col+')';rchips();return}
  c.setTransform(...vp.transform);let hit=null;const l=an[pi-1].shapes;
  for(let i=l.length-1;i>=0;i--)if(c.isPointInPath(p2d(l[i]),x,y,l[i].eo?'evenodd':'nonzero')){hit=l[i].k;break}
@@ -323,7 +331,7 @@ async function analyseFile(B){const doc=await PDFDocument.load(B),A=doc.getPages
  try{const gr=await glyphs(pdfjsLib,B,A.length);gr.forEach((x,i)=>{A[i].shapes.push(...x.shapes);ng+=x.shapes.length;nt+=x.cnt});if(gr.err){nt=-1;err=gr.err}}catch(e){nt=-1;err=e.message}
  return{A,ng,nt,err,ns:A.reduce((a,p)=>a+p.nst,0)}}
 async function load(file){
- $('info').textContent='Reading…';name=file.name.replace(/\.pdf$/i,'');resBytes=maskBytes=null;rpicked=[];rchips();view='orig';rj=mj=null;picked.clear();pi=1;
+ $('info').textContent='Reading…';name=file.name.replace(/\.pdf$/i,'');resBytes=maskBytes=null;visMemo={};zoom=1;rpicked=[];rchips();view='orig';rj=mj=null;picked.clear();pi=1;
  try{bytes=new Uint8Array(await file.arrayBuffer());$('info').textContent='Analysing & outlining text…';
   const r=await analyseFile(bytes);an=r.A;spots=new Map();allKeys=new Set();let w=0;
   an.forEach(a=>a.shapes.forEach(s=>{allKeys.add(s.k);if(s.k=='W')w++;else if(s.k[0]=='S')spots.set(s.k,(spots.get(s.k)||0)+1)}));
@@ -340,7 +348,7 @@ $('f').onchange=e=>e.target.files[0]&&load(e.target.files[0]);
 function setMode(m){mode=m;[1,2,3,4].forEach(i=>{$('m'+i).classList.toggle('on',i==m);$('d'+i).hidden=i!=m});if(view!='orig'){view='orig';updTg();nav(0)}else draw()}
 [1,2,3,4].forEach(i=>$('m'+i).onclick=()=>setMode(i));
 $('spots').onchange=draw;
-const opts=()=>({dpi:+$('dpi').value||300,thr:Math.max(0,+$('thr').value||0),spread:+$('spr').value||0,inv:$('inv').checked,sname:$('sname').value.trim()||'5',grad:$('grad').value,cell:+$('cell').value||1,rtol:+$('rtol').value||40,rp:rpicked,alt:$('alt').value||'#ff2bd6'});
+const opts=()=>({dpi:+$('dpi').value||300,thr:Math.max(0,+$('thr').value||0),spread:+$('spr').value||0,stk:Math.max(0,parseFloat($('stk').value)||0),vis:$('vis').checked,inv:$('inv').checked,sname:$('sname').value.trim()||'5',grad:$('grad').value,cell:+$('cell').value||1,rtol:+$('rtol').value||40,rp:rpicked,alt:$('alt').value||'#ff2bd6'});
 const cmyk=h=>{const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255,k=1-Math.max(r,g,b);return(k>=1?[0,0,0,1]:[(1-r-k)/(1-k),(1-g-k)/(1-k),(1-b-k)/(1-k),k]).map(v=>+v.toFixed(3))};
 function morph(a,W,H,r,dil){const pass=(n,len,ix)=>{const pre=new Int32Array(len+1);for(let l=0;l<n;l++){for(let i=0;i<len;i++)pre[i+1]=pre[i]+a[ix(l,i)];for(let i=0;i<len;i++){const lo=Math.max(0,i-r),hi=Math.min(len-1,i+r),s=pre[hi+1]-pre[lo];a[ix(l,i)]=dil?(s>0?1:0):(s==hi-lo+1?1:0)}}};
  pass(H,W,(l,i)=>l*W+i);pass(W,H,(l,i)=>i*W+l)}
@@ -384,7 +392,7 @@ async function build({B,A,S,mode:md,o,masks,maskOnly}){
   const on=D.lookup(K('ON'));if(on instanceof PDFArray)on.push(ocg)}
  else cat.set(K('OCProperties'),ctx.obj({OCGs:[ocg],D:{Order:[ocg],ON:[ocg]}}));
  const cs=ctx.register(ctx.obj(['Separation',nm,'DeviceCMYK',{FunctionType:2,Domain:[0,1],C0:[0,0,0,0],C1:cmyk(o.alt),N:1}]));
- const gs=ctx.register(ctx.obj({Type:'ExtGState',Name:'GS5',OP:true,op:true,OPM:1})),lw=fx(.2835+2*Math.max(o.spread,0)*72/25.4);
+ const gs=ctx.register(ctx.obj({Type:'ExtGState',Name:'GS5',OP:true,op:true,OPM:1})),lw=fx(o.stk*72/25.4),F=lw>0,OP=eo=>F?(eo?'B*':'B'):(eo?'f*':'f');
  let n=0;
  pages.forEach((pg,i)=>{
   pg.node.delete(PDFName.of('PieceInfo'));
@@ -392,14 +400,15 @@ async function build({B,A,S,mode:md,o,masks,maskOnly}){
   const sh=A[i].shapes.filter(s=>S.has(s.k));let body,imRef,imName;
   if(md==4){const k=masks[i];if(!k||!k.count)return blank();imRef=ctx.register(ctx.flateStream(k.bits,{Type:'XObject',Subtype:'Image',Width:k.w,Height:k.h,ImageMask:true,BitsPerComponent:1}));imName='ImS'+i;const[x0,y0,x1,y1]=k.view;body=`q ${x1-x0} 0 0 ${y1-y0} ${x0} ${y0} cm /${imName} Do Q`;n++}
   else{const fillSel=md==1?!o.inv:o.inv;
-   if(fillSel){if(!sh.length)return blank();body=md==3?visPaths(A[i].shapes,S)+'\nB*':sh.map(s=>s.p+(s.eo?' B*':' B')).join('\n')}
-   else{const m=pg.getMediaBox();body=`${m.x} ${m.y} ${m.width} ${m.height} re\n`+(md==3?visPaths(A[i].shapes,S):sh.map(s=>s.p).join('\n'))+'\nB*'}
+   const VP=o.vis?visPaths(A[i].shapes,S):null;
+   if(fillSel){if(!sh.length||VP==='')return blank();body=VP!==null?VP+'\n'+OP(1):sh.map(s=>s.p+' '+OP(s.eo)).join('\n')}
+   else{const m=pg.getMediaBox();body=`${m.x} ${m.y} ${m.width} ${m.height} re\n`+(VP!==null?VP:sh.map(s=>s.p).join('\n'))+'\n'+OP(1)}
    n+=sh.length}
   let res=pg.node.Resources();if(!res){res=ctx.obj({});pg.node.set(PDFName.of('Resources'),res)}
   const add=(g,k,v)=>{let d=res.lookup(PDFName.of(g));if(!(d instanceof PDFDict)){d=ctx.obj({});res.set(PDFName.of(g),d)}d.set(PDFName.of(k),v)};
   add('ColorSpace','SpotCS',cs);add('ExtGState','SpotGS',gs);add('Properties','SpotOC',ocg);if(imRef)add('XObject',imName,imRef);
   const raw=pg.node.get(PDFName.of('Contents')),r=ctx.lookup(raw),refs=r instanceof PDFArray?r.asArray():raw?[raw]:[];
-  const layer=`/OC /SpotOC BDC\nq /SpotGS gs /SpotCS cs 1 scn /SpotCS CS 1 SCN ${lw} w 1 j\n${body}\nQ\nEMC\n`;
+  const layer=`/OC /SpotOC BDC\nq /SpotGS gs /SpotCS cs 1 scn /SpotCS CS 1 SCN ${lw||.25} w 1 j\n${body}\nQ\nEMC\n`;
   const arr=PDFArray.withContext(ctx);
   if(!maskOnly){arr.push(ctx.register(ctx.stream('q\n')));refs.forEach(x=>arr.push(x));arr.push(ctx.register(ctx.stream('\nQ\n')))}
   arr.push(ctx.register(ctx.stream(layer)));pg.node.set(PDFName.of('Contents'),arr)});
@@ -430,9 +439,17 @@ $('bf').onchange=async e=>{const fs=[...e.target.files],st=$('st');let ok=0,bad=
  st.className=bad.length?'err':'ok';st.textContent=`Batch done: ${ok} saved`+(bad.length?`, failed: ${bad.join('; ')}`:'');e.target.value=''};
 const PK='spot5.presets',getP=()=>{try{return JSON.parse(localStorage.getItem(PK)||'{}')}catch(e){return{}}};
 function listP(){const p=getP(),k=Object.keys(p);$('plist').innerHTML=k.length?k.map(x=>`<option>${x.replace(/</g,'&lt;')}</option>`).join(''):'<option value="">(none saved)</option>'}
-$('psave').onclick=()=>{const n=$('pname').value.trim();if(!n)return;const p=getP();p[n]={mode,dpi:$('dpi').value,thr:$('thr').value,spr:$('spr').value,inv:$('inv').checked,tol:$('tol').value,sname:$('sname').value,alt:$('alt').value,picked:[...picked],rp:rpicked,grad:$('grad').value,cell:$('cell').value,rtol:$('rtol').value,spots:[...document.querySelectorAll('#spots input:checked')].map(i=>i.value)};
+$('psave').onclick=()=>{const n=$('pname').value.trim();if(!n)return;const p=getP();p[n]={mode,dpi:$('dpi').value,thr:$('thr').value,spr:$('spr').value,stk:$('stk').value,vis:$('vis').checked,inv:$('inv').checked,tol:$('tol').value,sname:$('sname').value,alt:$('alt').value,picked:[...picked],rp:rpicked,grad:$('grad').value,cell:$('cell').value,rtol:$('rtol').value,spots:[...document.querySelectorAll('#spots input:checked')].map(i=>i.value)};
  try{localStorage.setItem(PK,JSON.stringify(p))}catch(e){}listP();$('plist').value=n};
-$('pload').onclick=()=>{const p=getP()[$('plist').value];if(!p)return;['dpi','thr','spr','tol','sname','alt'].forEach(k=>$(k).value=p[k]);$('inv').checked=p.inv;$('tolv').textContent=p.tol;picked=new Set(p.picked);rpicked=p.rp||[];['grad','cell','rtol'].forEach(k=>{if(p[k]!==undefined)$(k).value=p[k]});rchips();
+$('pload').onclick=()=>{const p=getP()[$('plist').value];if(!p)return;['dpi','thr','spr','stk','tol','sname','alt'].forEach(k=>{if(p[k]!==undefined)$(k).value=p[k]});if(p.vis!==undefined)$('vis').checked=p.vis;$('inv').checked=p.inv;$('tolv').textContent=p.tol;picked=new Set(p.picked);rpicked=p.rp||[];['grad','cell','rtol'].forEach(k=>{if(p[k]!==undefined)$(k).value=p[k]});rchips();
  document.querySelectorAll('#spots input').forEach(i=>i.checked=p.spots.includes(i.value));setMode(p.mode);chips();draw()};
+$('zi').onclick=()=>setZoom(zoom*1.5);$('zo').onclick=()=>setZoom(zoom/1.5);
+$('zf').onclick=()=>{zoom=1;const vw=$('wrap').parentElement;vw.scrollLeft=vw.scrollTop=0;layoutWrap(asp);render()};
+$('wrap').parentElement.addEventListener('wheel',e=>{e.preventDefault();setZoom(zoom*(e.deltaY<0?1.2:1/1.2),e.clientX,e.clientY)},{passive:false});
+window.addEventListener('resize',()=>layoutWrap(asp));
+{const ov=$('ov'),vw=ov.parentElement.parentElement;
+ ov.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,sl:vw.scrollLeft,st:vw.scrollTop};dragged=false;try{ov.setPointerCapture(e.pointerId)}catch(_){}};
+ ov.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)dragged=true;if(dragged){vw.scrollLeft=drag.sl-dx;vw.scrollTop=drag.st-dy}};
+ ov.onpointerup=ov.onpointercancel=()=>{drag=null}}
 listP();rchips();
 </script></body></html>
