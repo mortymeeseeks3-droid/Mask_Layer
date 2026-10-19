@@ -376,11 +376,18 @@ async function makeMask(i,pd,o){
 async function build({B,A,S,mode:md,o,masks,maskOnly}){
  const doc=await PDFDocument.load(B),ctx=doc.context,pages=doc.getPages(),nm=o.sname;
  const ocg=ctx.register(ctx.obj({Type:'OCG',Name:PDFString.of('Spot '+nm)}));
- doc.catalog.set(PDFName.of('OCProperties'),ctx.obj({OCGs:[ocg],D:{Order:[ocg],ON:[ocg]}}));
+ const cat=doc.catalog,K=x=>PDFName.of(x);cat.delete(K('PieceInfo'));
+ const oc0=cat.lookup(K('OCProperties'));
+ if(oc0 instanceof PDFDict){const og=oc0.lookup(K('OCGs'));if(og instanceof PDFArray)og.push(ocg);else oc0.set(K('OCGs'),ctx.obj([ocg]));
+  let D=oc0.lookup(K('D'));if(!(D instanceof PDFDict)){D=ctx.obj({});oc0.set(K('D'),D)}
+  const od=D.lookup(K('Order'));if(od instanceof PDFArray)od.push(ocg);else D.set(K('Order'),ctx.obj([ocg]));
+  const on=D.lookup(K('ON'));if(on instanceof PDFArray)on.push(ocg)}
+ else cat.set(K('OCProperties'),ctx.obj({OCGs:[ocg],D:{Order:[ocg],ON:[ocg]}}));
  const cs=ctx.register(ctx.obj(['Separation',nm,'DeviceCMYK',{FunctionType:2,Domain:[0,1],C0:[0,0,0,0],C1:cmyk(o.alt),N:1}]));
  const gs=ctx.register(ctx.obj({Type:'ExtGState',Name:'GS5',OP:true,op:true,OPM:1})),lw=fx(.2835+2*Math.max(o.spread,0)*72/25.4);
  let n=0;
  pages.forEach((pg,i)=>{
+  pg.node.delete(PDFName.of('PieceInfo'));
   const blank=()=>{if(maskOnly)pg.node.set(PDFName.of('Contents'),ctx.register(ctx.stream('')))};
   const sh=A[i].shapes.filter(s=>S.has(s.k));let body,imRef,imName;
   if(md==4){const k=masks[i];if(!k||!k.count)return blank();imRef=ctx.register(ctx.flateStream(k.bits,{Type:'XObject',Subtype:'Image',Width:k.w,Height:k.h,ImageMask:true,BitsPerComponent:1}));imName='ImS'+i;const[x0,y0,x1,y1]=k.view;body=`q ${x1-x0} 0 0 ${y1-y0} ${x0} ${y0} cm /${imName} Do Q`;n++}
@@ -390,13 +397,13 @@ async function build({B,A,S,mode:md,o,masks,maskOnly}){
    n+=sh.length}
   let res=pg.node.Resources();if(!res){res=ctx.obj({});pg.node.set(PDFName.of('Resources'),res)}
   const add=(g,k,v)=>{let d=res.lookup(PDFName.of(g));if(!(d instanceof PDFDict)){d=ctx.obj({});res.set(PDFName.of(g),d)}d.set(PDFName.of(k),v)};
-  add('ColorSpace','CS5',cs);add('ExtGState','GS5',gs);add('Properties','MC0',ocg);if(imRef)add('XObject',imName,imRef);
+  add('ColorSpace','SpotCS',cs);add('ExtGState','SpotGS',gs);add('Properties','SpotOC',ocg);if(imRef)add('XObject',imName,imRef);
   const raw=pg.node.get(PDFName.of('Contents')),r=ctx.lookup(raw),refs=r instanceof PDFArray?r.asArray():raw?[raw]:[];
-  const layer=`/OC /MC0 BDC\nq /GS5 gs /CS5 cs 1 scn /CS5 CS 1 SCN ${lw} w 1 j\n${body}\nQ\nEMC\n`;
+  const layer=`/OC /SpotOC BDC\nq /SpotGS gs /SpotCS cs 1 scn /SpotCS CS 1 SCN ${lw} w 1 j\n${body}\nQ\nEMC\n`;
   const arr=PDFArray.withContext(ctx);
   if(!maskOnly){arr.push(ctx.register(ctx.stream('q\n')));refs.forEach(x=>arr.push(x));arr.push(ctx.register(ctx.stream('\nQ\n')))}
   arr.push(ctx.register(ctx.stream(layer)));pg.node.set(PDFName.of('Contents'),arr)});
- return{out:await doc.save(),n}}
+ return{out:await doc.save({useObjectStreams:false}),n}}
 async function saveBlob(fn,bytes){const blob=new Blob([bytes],{type:'application/pdf'});
  const dl=window.claude&&claude.use?await claude.use('downloads').catch(()=>null):null;
  if(dl)await dl.save({filename:fn,data:blob});else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fn;a.click()}}
