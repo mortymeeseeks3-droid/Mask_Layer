@@ -4,7 +4,7 @@
 <title>Spot 5 Layer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/clipper-lib@6.4.2/clipper.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{color-scheme:dark;--bg:#07050b;--ink:#f4eefb;--mut:#a595b8;--mag:#ff2bd6;--mag2:#ff6ae6;--vio:#7a2cff;--line:rgba(255,255,255,.09);box-sizing:border-box}
@@ -73,25 +73,25 @@ label.row input{width:18px;height:18px;accent-color:#ff2bd6}
 </style></head><body><div class="app">
 <header><h1>Spot <b>5</b> Layer</h1><p>PDF spot colour overprint studio</p></header>
 <aside class="side">
- <div class="card"><p class="lab">01 · Artwork</p><input type="file" id="f" accept="application/pdf"><label class="mut" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="olc" checked style="accent-color:#ff2bd6"> Outline text &amp; strokes on upload</label><div id="info">Drop in a PDF to begin.</div></div>
+ <div class="card"><p class="lab">01 · Artwork</p><input type="file" id="f" accept="application/pdf"><div id="info">Drop in a PDF to begin.</div></div>
  <div class="card" id="mcard" hidden><p class="lab">02 · Mode</p>
   <div class="modes"><button id="m1" class="on"><i>1</i><span>White<small>Copy all white areas to spot 5</small></span></button><button id="m2"><i>2</i><span>Spot list<small>Cut ticked spot colours out</small></span></button><button id="m3"><i>3</i><span>Picker<small>Click artwork, knock out the colour</small></span></button><button id="m4"><i>4</i><span>Raster<small>Pixels with colour → solid spot 5</small></span></button></div>
   <div id="dwrap"><div id="d1" class="mut">Every white-filled area is copied to a new layer, filled and stroked 0.1&nbsp;mm in spot “5”, overprint on.</div>
   <div id="d2" hidden><div class="mut">Full-page spot “5” rectangle with the ticked spot colours cut out.</div><div id="spots"></div></div>
   <div id="d3" hidden><div class="mut">Click the preview to pick a colour. Only its visible area is cut from the spot “5” rectangle; anything painted on top stays filled.</div><div class="ctl"><label>Tolerance <input id="tol" type="range" min="0" max="120" value="0" style="width:120px"> <span id="tolv">0</span></label></div><div class="chips" id="chips"></div></div>
-  <div id="d4" hidden><div class="mut">Renders each page, finds every pixel with more than the threshold of colour, and pastes them as a 100% spot “5” bitmap layer above the artwork (overprint on).</div><div class="ctl"><label>Resolution <select id="dpi"><option>150</option><option selected>300</option><option>600</option></select> dpi</label><label>Threshold <input id="thr" type="number" value="1" min="0" max="100" step="0.5"> %</label></div>
-  <div class="ctl"><label>Gradients <select id="grad"><option value="hard">Hard cut at threshold</option><option value="bayer">Ordered dither (fade to 0)</option><option value="fs">Error-diffusion dither</option></select></label><label>Dot size <input id="cell" type="number" value="1" min="1" max="12"> px</label></div>
-  <div class="mut" style="margin-top:6px">Dither turns a fade into dots whose density follows the gradient, so it tails off to nothing instead of ending at a hard edge. Use a bigger dot size for plate-friendly dots.</div>
+  <div id="d4" hidden><div class="mut">Renders each page at the selected DPI and adds a raster bitmap layer in the named spot colour “5” (overprint on). No vectorisation is performed.</div><div class="ctl"><label>Resolution <select id="dpi"><option>150</option><option selected>300</option><option>600</option><option>1200</option></select> dpi</label><label>Threshold <input id="thr" type="number" value="1" min="0" max="100" step="0.5"> %</label></div>
+  <div class="ctl"><label>Gradients <select id="grad"><option value="hard">Hard cut at threshold</option><option value="bayer">Ordered dither (fade to 0)</option><option value="fs">Error-diffusion dither</option><option value="continuous">Continuous spot tint (copy gradient)</option></select></label><label>Dot size <input id="cell" type="number" value="1" min="1" max="12"> px</label></div>
+  <div class="mut" style="margin-top:6px">Dither turns a fade into dots whose density follows the gradient. “Continuous spot tint” keeps the source gradient as a smooth grayscale raster mapped to spot colour 5; no vectorisation is performed.</div><div class="ctl"><label>Spot 5 density <input id="density" type="range" min="0" max="200" value="100" style="width:150px"> <span id="densityv">100%</span></label></div><div class="mut">100% = original gradient strength. Increase to strengthen spot 5; reduce to weaken it. Values above 100% reach solid spot earlier.</div>
   <div class="ctl"><label>Colour tolerance <input id="rtol" type="range" min="5" max="150" value="40" style="width:110px"></label></div>
   <div class="mut" style="margin-top:4px">Click the preview to pick colours; only those colours (and their fade to white) go into the mask. Nothing picked = every coloured pixel.</div><div class="chips" id="rchips"></div></div></div>
  </div>
  <div class="card" id="tcard" hidden><p class="lab">03 · Tools</p>
  <div class="ctl" style="margin-top:0"><label>Vector stroke <input id="stk" type="number" value="0.1" step="0.05" min="0" max="5"> mm</label><label>Raster spread <input id="spr" type="number" value="0" step="0.05" min="-5" max="5"> mm</label></div>
- <div class="ctl"><label><input type="checkbox" id="vis" checked> Visible areas only</label><label><input type="checkbox" id="inv"> Invert selection</label></div>
+ <div class="ctl"><label><input type="checkbox" id="vis"> Visible areas only</label><label><input type="checkbox" id="inv"> Invert selection</label></div>
  <div class="mut" style="margin-top:6px">Vector stroke sets the outline width on the new layer (0 = fill only). Raster spread grows the bitmap mask, or chokes it with a negative value. Visible-only cuts shapes off where another colour covers them. Invert fills the selection instead of cutting it out.</div>
  <div class="ctl"><label>Spot name <input id="sname" value="5" style="width:90px"></label><label>Preview colour <input id="alt" type="color" value="#ff2bd6" style="padding:0;width:40px;height:28px"></label></div>
  <div class="ctl"><input id="pname" placeholder="preset name" style="width:110px"><button class="sm2" id="psave">Save</button><select id="plist"></select><button class="sm2" id="pload">Load</button></div></div>
-<div class="card" id="gcard" hidden><p class="lab">04 · Output</p><button class="go" id="go">Create PDF</button><button class="go alt" id="sv" hidden>Save PDF</button><button class="go alt" id="msv" hidden>Save mask-only PDF</button><button class="go alt" id="osv" hidden>Save outlined PDF (no spot layer)</button><button class="go alt" id="bt">Batch process files…</button><input type="file" id="bf" accept="application/pdf" multiple hidden><div id="st" class="mut"></div></div>
+<div class="card" id="gcard" hidden><p class="lab">04 · Output</p><button class="go" id="go">Create PDF</button><button class="go alt" id="sv" hidden>Save PDF</button><button class="go alt" id="msv" hidden>Save mask-only PDF</button><button class="go alt" id="bt">Batch process files…</button><input type="file" id="bf" accept="application/pdf" multiple hidden><div id="st" class="mut"></div></div>
 </aside>
 <main class="card stage">
  <div id="pcard" hidden>
@@ -102,25 +102,25 @@ label.row input{width:18px;height:18px;accent-color:#ff2bd6}
  <div id="empty"><b>No file</b><span>Upload a PDF to see the live preview here</span></div>
 </main></div>
 <script>
-const {PDFDocument,PDFName,PDFArray,PDFDict,PDFString,PDFRef,decodePDFRawStream}=PDFLib;
+const {PDFDocument,PDFName,PDFArray,PDFDict,PDFString,decodePDFRawStream}=PDFLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const $=id=>document.getElementById(id);
 let bytes,name,an=[],mode=1,spots=new Map(),picked=new Set(),pj=null,rj=null,pi=1,vp=null,showRes=false,resBytes=null,tk=0;
 const mul=(m,n)=>[m[0]*n[0]+m[1]*n[2],m[0]*n[1]+m[1]*n[3],m[2]*n[0]+m[3]*n[2],m[2]*n[1]+m[3]*n[3],m[4]*n[0]+m[5]*n[2]+n[4],m[4]*n[1]+m[5]*n[3]+n[5]];
 const fx=n=>+n.toFixed(4);
 const hx=(r,g,b)=>'C:#'+[r,g,b].map(v=>Math.round(Math.max(0,Math.min(1,v))*255).toString(16).padStart(2,'0')).join('');
-function tok(s){const o=[],n=s.length;let i=0,st=0;const P=(t,v)=>o.push({t,v,i:st,e:i});
- while(i<n){const c=s[i];st=i;
+function tok(s){const o=[],n=s.length;let i=0;
+ while(i<n){const c=s[i];
   if(c<=' '){i++;continue}
   if(c=='%'){while(i<n&&s[i]!='\n'&&s[i]!='\r')i++;continue}
-  if(c=='('){let d=1;i++;while(i<n&&d){const e=s[i];if(e=='\\')i++;else if(e=='(')d++;else if(e==')')d--;i++}P('x');continue}
-  if(c=='<'){if(s[i+1]=='<'){i+=2;P('x')}else{while(i<n&&s[i]!='>')i++;i++;P('x')}continue}
+  if(c=='('){let d=1;i++;while(i<n&&d){const e=s[i];if(e=='\\')i++;else if(e=='(')d++;else if(e==')')d--;i++}o.push({t:'x'});continue}
+  if(c=='<'){if(s[i+1]=='<'){i+=2;o.push({t:'x'})}else{while(i<n&&s[i]!='>')i++;i++;o.push({t:'x'})}continue}
   if(c=='>'){i+=s[i+1]=='>'?2:1;continue}
-  if('[]{}'.includes(c)){i++;P('x');continue}
+  if('[]{}'.includes(c)){i++;o.push({t:'x'});continue}
   const m=/[^\s()<>\[\]{}\/%]*/y;m.lastIndex=c=='/'?i+1:i;const w=m.exec(s)[0];i=m.lastIndex;
-  if(c=='/')P('name',w);
-  else if(/^[+-]?(\d+\.?\d*|\.\d+)$/.test(w))P('n',parseFloat(w));
-  else{P('o',w);if(w=='BI'){const r=/\sEI(?=\s|$)/g;r.lastIndex=s.indexOf('ID',i);const x=r.exec(s);i=x?r.lastIndex:n}}}
+  if(c=='/')o.push({t:'name',v:w});
+  else if(/^[+-]?(\d+\.?\d*|\.\d+)$/.test(w))o.push({t:'n',v:parseFloat(w)});
+  else{o.push({t:'o',v:w});if(w=='BI'){const r=/\sEI(?=\s|$)/g;r.lastIndex=s.indexOf('ID',i);const x=r.exec(s);i=x?r.lastIndex:n}}}
  return o}
 function csInfo(nm,res){
  if(/^(DeviceGray|G)$/.test(nm))return{k:'g'};if(/^(DeviceRGB|RGB)$/.test(nm))return{k:'rgb'};if(/^(DeviceCMYK|CMYK)$/.test(nm))return{k:'cmyk'};
@@ -134,7 +134,7 @@ const col=(k,a)=>{let r,g,b;
  if(k=='g'&&a.length>=1)r=g=b=a[0];else if(k=='rgb'&&a.length>=3)[r,g,b]=a;
  else if(k=='cmyk'&&a.length>=4){const[c,m,y,K]=a;r=(1-c)*(1-K);g=(1-m)*(1-K);b=(1-y)*(1-K)}else return'O';
  return r>=.999&&g>=.999&&b>=.999?'W':hx(r,g,b)};
-function stream(ctx,x){try{return lat1(decodePDFRawStream(ctx.lookup(x)).decode())+'\n'}catch(e){return''}}
+function stream(ctx,x){try{return new TextDecoder('latin1').decode(decodePDFRawStream(ctx.lookup(x)).decode())+'\n'}catch(e){return''}}
 const bez=(p,a,b,c)=>{const o=[];for(let i=1;i<=12;i++){const t=i/12,u=1-t,A=u*u*u,B=3*u*u*t,C=3*u*t*t,D=t*t*t;o.push([A*p[0]+B*a[0]+C*b[0]+D*c[0],A*p[1]+B*a[1]+C*b[1]+D*c[1]])}return o};
 const poly=pts=>{let A=0;for(let i=0;i<pts.length;i++){const j=(i+1)%pts.length;A+=pts[i][0]*pts[j][1]-pts[j][0]*pts[i][1]}if(A<0)pts=pts.slice().reverse();return pts.map((q,i)=>fx(q[0])+' '+fx(q[1])+(i?' l':' m')).join(' ')+' h'};
 const circ=(c,r)=>poly(Array.from({length:16},(_,i)=>[c[0]+r*Math.cos(i*Math.PI/8),c[1]+r*Math.sin(i*Math.PI/8)]));
@@ -202,6 +202,7 @@ async function glyphs(pdfjs,data,n,done){
   out.push({shapes:R.shapes.map(sh=>({k:sh.k,eo:false,txt:1,p:sh.cmds.map(o=>o[0]=='h'?'h':o[0]=='c'?q(o[1])+' '+q(o[2])+' '+q(o[3])+' c':q(o[1])+' '+o[0]).join(' ')})),cnt:R.cnt})}
  return out}
 
+const PC=window.polygonClipping;
 const bezv=(p,a,b,c)=>{const o=[];for(let i=1;i<=12;i++){const t=i/12,u=1-t,A=u*u*u,B=3*u*u*t,C=3*u*t*t,D=t*t*t;o.push([A*p[0]+B*a[0]+C*b[0]+D*c[0],A*p[1]+B*a[1]+C*b[1]+D*c[1]])}return o};
 function rings(p){const out=[];let n=[],cur=null;
  for(const w of p.split(' ')){if(/^[mlch]$/.test(w)){
@@ -210,59 +211,49 @@ function rings(p){const out=[];let n=[],cur=null;
   else if(w=='c'&&cur)cur.push(...bezv(cur[cur.length-1],[+n[0],+n[1]],[+n[2],+n[3]],[+n[4],+n[5]]));
   else if(w=='h')cur=null;
   n=[]}else n.push(w)}
- return out.filter(r=>r.length>2)}
-const CL=window.ClipperLib,CS=100;
-const toCP=rs=>rs.map(r=>r.map(q=>({X:Math.round(q[0]*CS),Y:Math.round(q[1]*CS)})));
-function cexec(type,subj,clip,sf){const c=new CL.Clipper(),o=new CL.Paths();c.AddPaths(subj,CL.PolyType.ptSubject,true);if(clip)c.AddPaths(clip,CL.PolyType.ptClip,true);c.Execute(type,o,sf||CL.PolyFillType.pftNonZero,CL.PolyFillType.pftNonZero);return o}
-const cregion=(s,rs)=>rs.length?cexec(CL.ClipType.ctUnion,toCP(rs),null,s.eo?CL.PolyFillType.pftEvenOdd:CL.PolyFillType.pftNonZero):[];
-const cintersect=(A,B)=>cexec(CL.ClipType.ctIntersection,A,B);
-const cstr=P=>P.map(r=>r.map((q,k)=>(q.X/CS)+' '+(q.Y/CS)+(k?' l':' m')).join(' ')+' h').join(' ');
-const bboxR=rs=>{let b=[1e9,1e9,-1e9,-1e9];rs.forEach(r=>r.forEach(q=>{b=[Math.min(b[0],q[0]),Math.min(b[1],q[1]),Math.max(b[2],q[0]),Math.max(b[3],q[1])]}));return b};
-const mkClip=P=>{const q=P.flat().map(p=>[p.X/CS,p.Y/CS]),r=P.length==1&&P[0].length==4&&P[0].every((p,i,a)=>{const n=a[(i+1)%4];return p.X==n.X||p.Y==n.Y});return{P,rect:r,bb:q.length?bboxR([q]):[0,0,0,0]}};
+ return out.map(r=>r.map(q=>[Math.round(q[0]*100)/100,Math.round(q[1]*100)/100]).filter((q,i,a)=>!i||q[0]!=a[i-1][0]||q[1]!=a[i-1][1])).filter(r=>r.length>2)}
+const area=r=>{let A=0;for(let i=0;i<r.length;i++){const j=(i+1)%r.length;A+=r[i][0]*r[j][1]-r[j][0]*r[i][1]}return A/2};
+function region(s,rs){
+ if(!rs.length)return[];
+ if(s.eo){try{return PC.xor(...rs.map(r=>[[r]]))}catch(e){return rs.map(r=>[r])}}
+ const big=rs.reduce((a,r)=>Math.abs(area(r))>Math.abs(area(a))?r:a),sg=Math.sign(area(big));
+ const pos=rs.filter(r=>Math.sign(area(r))==sg).map(r=>[[r]]),neg=rs.filter(r=>Math.sign(area(r))!=sg).map(r=>[[r]]);
+ let u;try{u=PC.union(...pos)}catch(e){return pos.map(p=>p[0])}if(neg.length&&u.length){try{u=PC.difference(u,PC.union(...neg))}catch(e){}}return u}
 function visPaths(shapes,S){const info=[];
- const get=i=>info[i]||(info[i]=(()=>{const rs=rings(shapes[i].p);return{rs,b:bboxR([].concat(rs)),R:null}})());
- const reg=i=>{const a=get(i);return a.R||(a.R=cregion(shapes[i],a.rs))};
+ const get=i=>info[i]||(info[i]=(()=>{const rs=rings(shapes[i].p);let b=[1e9,1e9,-1e9,-1e9];rs.forEach(r=>r.forEach(q=>{b=[Math.min(b[0],q[0]),Math.min(b[1],q[1]),Math.max(b[2],q[0]),Math.max(b[3],q[1])]}));return{rs,b}})());
  const out=[];
  shapes.forEach((s,i)=>{if(!S.has(s.k))return;const a=get(i),over=[];
   for(let j=i+1;j<shapes.length;j++){if(S.has(shapes[j].k))continue;const b=get(j).b;if(b[0]<a.b[2]&&b[2]>a.b[0]&&b[1]<a.b[3]&&b[3]>a.b[1])over.push(j)}
   if(!over.length){out.push(s.p);return}
-  try{let R=reg(i);const O=[];over.forEach(j=>{const r=reg(j);if(r.length)O.push(...r)});
-   if(O.length&&R.length)R=cexec(CL.ClipType.ctDifference,R,O);
-   if(R.length)out.push(cstr(R))}catch(e){out.push(s.p)}});
+  let R=region(s,a.rs);const O=over.map(j=>region(shapes[j],get(j).rs)).filter(r=>r.length);
+  if(O.length&&R.length){try{R=PC.difference(R,...O)}catch(e1){let ok=0;for(const o of O){try{R=PC.difference(R,o);ok++}catch(e2){}}if(!ok){out.push(s.p);return}}}
+  R.forEach(poly=>poly.forEach(ring=>out.push(ring.map((q,k)=>(+q[0].toFixed(4))+' '+(+q[1].toFixed(4))+(k?' l':' m')).join(' ')+' h')))});
  return out.join(' ')}
 
-const lat1=u=>{let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return s};
-const enc=s=>{const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i)&255;return u};
-function analyse(doc,pg,rw){
+function analyse(doc,pg){
  const ctx=doc.context,raw=pg.node.get(PDFName.of('Contents')),r=ctx.lookup(raw);
  const refs=r instanceof PDFArray?r.asArray():raw?[raw]:[];
- const shapes=[],tcols=[];let nst=0;
+ const shapes=[];let nst=0;
  function run(s,res,g,depth){
-  const ed=[];let st=[],path=[],subs=[],cs=null,cpP=[0,0],stP=[0,0],args=[],apos=[],cur=[0,0],pend=null;
-  const P=(x,y)=>rw?[fx(x),fx(y)]:[fx(g.ctm[0]*x+g.ctm[2]*y+g.ctm[4]),fx(g.ctm[1]*x+g.ctm[3]*y+g.ctm[5])];
-  const add=()=>{if(!cs){cs={pts:[cpP],closed:false};subs.push(cs)}};
+  let st=[],path=[],subs=[],cs=null,cpP=[0,0],stP=[0,0],args=[];
+  const P=(x,y)=>[fx(g.ctm[0]*x+g.ctm[2]*y+g.ctm[4]),fx(g.ctm[1]*x+g.ctm[3]*y+g.ctm[5])];
+  const add=(p,line)=>{if(!cs){cs={pts:[cpP],closed:false};subs.push(cs)}};
   const ln=p=>{add();cs.pts.push(p);cpP=p};
   const cv=(a,b,c)=>{add();cs.pts.push(...bez(cpP,a,b,c));cpP=c};
   const spotOr=(c,a)=>c.k=='spot'?'S:'+c.name:col(c.k,a);
-  const strokeOf=()=>{const sc=Math.sqrt(Math.abs(g.ctm[0]*g.ctm[3]-g.ctm[1]*g.ctm[2]))||1,hw=(rw?Math.max(g.lw,.1/sc):Math.max(g.lw*sc,.1))/2,d=rw?1:sc,pl=[];
-   for(const sb of subs)for(const pc of dashes(sb.pts,sb.closed,g.dash.map(x=>x*d),g.ph*d))pl.push(...strokePolys(pc,hw,g.cap,g.join,g.ml));return pl};
-  const addShape=(k,p,eo,stk)=>{
-   if(g.clip){const rs=rings(p),bb=bboxR(rs);
-    if(!(g.clip.rect&&bb[0]>=g.clip.bb[0]&&bb[1]>=g.clip.bb[1]&&bb[2]<=g.clip.bb[2]&&bb[3]<=g.clip.bb[3])){const R=cintersect(cregion({eo},rs),g.clip.P);if(!R.length)return;p=cstr(R);eo=false}}
-   shapes.push(stk?{k,p,eo,stk:1}:{k,p,eo});if(stk)nst++};
   for(const t of tok(s)){
-   if(t.t!='o'){args.push(t.v);apos.push(t.i);continue}
-   const o=t.v,a=args.filter(v=>typeof v=='number'),nm=args.find(v=>typeof v=='string'),fs=apos.length?apos[0]:t.i,vals=args.map(v=>typeof v=='number'?v:typeof v=='string'?'/'+v:'').join(' ').trim();args=[];apos=[];
+   if(t.t!='o'){args.push(t.v);continue}
+   const o=t.v,a=args.filter(v=>typeof v=='number'),nm=args.find(v=>typeof v=='string');args=[];
    switch(o){
    case 'q':st.push({...g});break;
    case 'Q':if(st.length)g=st.pop();break;
    case 'cm':if(a.length==6)g.ctm=mul(a,g.ctm);break;
-   case 'g':g.fill=col('g',a);g.fillOps=vals+' g';break;case 'rg':g.fill=col('rgb',a);g.fillOps=vals+' rg';break;case 'k':g.fill=col('cmyk',a);g.fillOps=vals+' k';break;
-   case 'G':g.stroke=col('g',a);g.strokeOps=vals+' g';break;case 'RG':g.stroke=col('rgb',a);g.strokeOps=vals+' rg';break;case 'K':g.stroke=col('cmyk',a);g.strokeOps=vals+' k';break;
-   case 'cs':g.ccs=csInfo(nm||'',res);g.fill=g.ccs.k=='spot'?'S:'+g.ccs.name:'C:#000000';g.fillCS='/'+nm+' cs';g.fillOps=g.fillCS;break;
-   case 'CS':g.scs=csInfo(nm||'',res);g.stroke=g.scs.k=='spot'?'S:'+g.scs.name:'C:#000000';g.strokeCS='/'+nm+' cs';g.strokeOps=g.strokeCS;break;
-   case 'sc':case 'scn':g.fill=spotOr(g.ccs,a);g.fillOps=(g.fillCS||'')+' '+vals+' '+o;break;
-   case 'SC':case 'SCN':g.stroke=spotOr(g.scs,a);g.strokeOps=(g.strokeCS||'')+' '+vals+' '+o.toLowerCase();break;
+   case 'g':g.fill=col('g',a);break;case 'rg':g.fill=col('rgb',a);break;case 'k':g.fill=col('cmyk',a);break;
+   case 'G':g.stroke=col('g',a);break;case 'RG':g.stroke=col('rgb',a);break;case 'K':g.stroke=col('cmyk',a);break;
+   case 'cs':g.ccs=csInfo(nm||'',res);g.fill=g.ccs.k=='spot'?'S:'+g.ccs.name:'C:#000000';break;
+   case 'CS':g.scs=csInfo(nm||'',res);g.stroke=g.scs.k=='spot'?'S:'+g.scs.name:'C:#000000';break;
+   case 'sc':case 'scn':g.fill=spotOr(g.ccs,a);break;
+   case 'SC':case 'SCN':g.stroke=spotOr(g.scs,a);break;
    case 'w':g.lw=a[0];break;case 'J':g.cap=a[0];break;case 'j':g.join=a[0];break;case 'M':g.ml=a[0];break;
    case 'd':if(a.length)g.dash=a.slice(0,-1),g.ph=a[a.length-1];break;
    case 'm':{const p=P(a[0],a[1]);path.push(p.join(' ')+' m');cs={pts:[p],closed:false};subs.push(cs);cpP=stP=p;cur=a;break}
@@ -272,52 +263,28 @@ function analyse(doc,pg,rw){
    case 'y':{const p=[P(a[0],a[1]),P(a[2],a[3])];path.push([...p,p[1]].flat().join(' ')+' c');cv(p[0],p[1],p[1]);cur=[a[2],a[3]];break}
    case 'h':path.push('h');if(cs)cs.closed=true;cs=null;cpP=stP;break;
    case 're':{const[x,y,w,h]=a,q=[P(x,y),P(x+w,y),P(x+w,y+h),P(x,y+h)];path.push(q[0].join(' ')+' m',q[1].join(' ')+' l',q[2].join(' ')+' l',q[3].join(' ')+' l','h');subs.push({pts:q,closed:true});cs=null;cpP=stP=q[0];cur=[x,y];break}
-   case 'W':pend='nz';break;case 'W*':pend='eo';break;
-   case 'Tj':case 'TJ':case "'":case '"':if(rw){ed.push([fs,t.e,'']);tcols.push({k:g.fill,ops:g.fillOps})}break;
    case 'f':case 'F':case 'f*':case 'B':case 'B*':case 'b':case 'b*':case 'S':case 's':case 'n':{
     if(/^[bs]/.test(o)&&cs)cs.closed=true;
-    const hasStroke=path.length&&/^[SsBb]/.test(o)&&g.stroke!='O';
-    if(!rw){
-     if(path.length&&/^[fFBb]/.test(o)&&g.fill!='O')addShape(g.fill,path.join(' '),o.endsWith('*'));
-     if(hasStroke){const pl=strokeOf();if(pl.length)addShape(g.stroke,pl.join(' '),false,true)}}
-    else if(hasStroke&&g.strokeOps){const pl=strokeOf(),rep={S:'n',s:'n',B:'f','B*':'f*',b:'f','b*':'f*'}[o];nst++;ed.push([t.i,t.e,rep+(pl.length?' q '+g.strokeOps+' '+pl.join(' ')+' f Q':'')])}
-    if(pend&&!rw&&path.length){let Pc=cregion({eo:pend=='eo'},rings(path.join(' ')));if(g.clip)Pc=cintersect(Pc,g.clip.P);g.clip=mkClip(Pc)}
-    path=[];subs=[];cs=null;pend=null;break}
-   case 'Do':if(depth<8&&nm){try{const xd=res.lookup(PDFName.of('XObject')),xo=xd.lookup(PDFName.of(nm)),xr=xd.get(PDFName.of(nm));
+    if(path.length&&/^[fFBb]/.test(o)&&g.fill!='O')shapes.push({k:g.fill,p:path.join(' '),eo:o.endsWith('*')});
+    if(path.length&&/^[SsBb]/.test(o)&&g.stroke!='O'){
+     const sc=Math.sqrt(Math.abs(g.ctm[0]*g.ctm[3]-g.ctm[1]*g.ctm[2])),hw=Math.max(g.lw*sc,.1)/2,pl=[];
+     for(const sb of subs)for(const pc of dashes(sb.pts,sb.closed,g.dash.map(x=>x*sc),g.ph*sc))pl.push(...strokePolys(pc,hw,g.cap,g.join,g.ml));
+     if(pl.length){shapes.push({k:g.stroke,p:pl.join(' '),eo:false,stk:1});nst++}}
+    path=[];subs=[];cs=null;break}
+   case 'Do':if(depth<8&&nm){try{const xo=res.lookup(PDFName.of('XObject')).lookup(PDFName.of(nm));
      if(xo.dict.lookup(PDFName.of('Subtype')).decodeText()=='Form'){
-      if(rw){const k=String(xr);if(done.has(k))break;done.add(k)}
       const mx=xo.dict.lookup(PDFName.of('Matrix')),M=mx instanceof PDFArray?mx.asArray().map(x=>x.asNumber()):[1,0,0,1,0,0];
-      const orig=lat1(decodePDFRawStream(xo).decode()),nt=run(orig,xo.dict.lookup(PDFName.of('Resources'))||res,{...g,ctm:mul(M,g.ctm)},depth+1);
-      if(rw&&nt!==orig&&xr instanceof PDFRef){const d=ctx.obj({});xo.dict.entries().forEach(([k,v])=>{if(!/^(Length|Filter|DecodeParms)$/.test(k.decodeText()))d.set(k,v)});ctx.assign(xr,ctx.stream(enc(nt),d))}}}catch(e){}}break}}
-  if(!ed.length)return s;let out='',p=0;for(const[a,b,r]of ed){out+=s.slice(p,a)+r;p=b}return out+s.slice(p)}
- const done=new Set();
- const text=run(refs.map(x=>{try{return lat1(decodePDFRawStream(ctx.lookup(x)).decode())+'\n'}catch(e){return''}}).join(''),pg.node.Resources(),{ctm:[1,0,0,1,0,0],fill:'C:#000000',fillOps:'0 g',ccs:{k:'g'},stroke:'C:#000000',strokeOps:'0 g',scs:{k:'g'},lw:1,cap:0,join:0,ml:10,dash:[],ph:0,clip:null},0);
- return{shapes,nst,text,tcols}}
-function glyphBlock(shapes,tc){
- const uniq=[...new Map(tc.map(c=>[c.ops,c])).values()],hx=k=>k=='W'?[255,255,255]:rgbOf(k);
- const pick=k=>{if(uniq.length==1)return uniq[0].ops;let best=null,bd=1e9;
-  for(const c of uniq)if(c.k=='W'||c.k[0]=='C'){const a=hx(k),b=hx(c.k),d=Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);if(d<bd){bd=d;best=c}}
-  if(best&&bd<=70)return best.ops;const sp=uniq.find(c=>c.k[0]=='S');if(sp)return sp.ops;
-  const[r,g,b]=hx(k).map(v=>+(v/255).toFixed(3));return `${r} ${g} ${b} rg`};
- let last='';const out=[];for(const s of shapes){const ops=pick(s.k);if(ops!=last){out.push(ops);last=ops}out.push(s.p+' f')}
- return out.join('\n')}
-async function outlineDoc(B){
- const doc=await PDFDocument.load(B),ctx=doc.context,pages=doc.getPages(),gl=await glyphs(pdfjsLib,B,pages.length);
- let nS=0,nG=0,nt=0;
- pages.forEach((pg,i)=>{const r=analyse(doc,pg,true),gt=glyphBlock(gl[i].shapes,r.tcols),arr=PDFArray.withContext(ctx);
-  arr.push(ctx.register(ctx.stream('q\n')));arr.push(ctx.register(ctx.stream(enc(r.text))));arr.push(ctx.register(ctx.stream('\nQ\n')));
-  if(gt)arr.push(ctx.register(ctx.stream(enc('q\n'+gt+'\nQ\n'))));
-  pg.node.set(PDFName.of('Contents'),arr);nS+=r.nst;nG+=gl[i].shapes.length;nt+=gl[i].cnt});
- if(gl.err)throw new Error(gl.err);
- return{out:await doc.save({useObjectStreams:false}),nS,nG,nt}}
-
+      run(new TextDecoder('latin1').decode(decodePDFRawStream(xo).decode()),xo.dict.lookup(PDFName.of('Resources'))||res,{...g,ctm:mul(M,g.ctm)},depth+1)}}catch(e){}}break}}}
+ let cur=[0,0];
+ run(refs.map(x=>stream(ctx,x)).join(''),pg.node.Resources(),{ctm:[1,0,0,1,0,0],fill:'C:#000000',ccs:{k:'g'},stroke:'C:#000000',scs:{k:'g'},lw:1,cap:0,join:0,ml:10,dash:[],ph:0},0);
+ return{shapes,nst}}
 const p2d=s=>{if(s.d)return s.d;const d=new Path2D(),t=s.p.split(' ');let n=[];
  for(const w of t){if(/^[a-z]$/.test(w)){if(w=='m')d.moveTo(n[0],n[1]);else if(w=='l')d.lineTo(n[0],n[1]);else if(w=='c')d.bezierCurveTo(...n);else d.closePath();n=[]}else n.push(+w)}
  return s.d=d};
 const swc=k=>k=='W'?'#ffffff':k[0]=='C'?k.slice(2):'#e0457b';
 const lbl=k=>k=='W'?'White':k[0]=='C'?k.slice(2):k.slice(2);
 function sel(){return mode==4?new Set():mode==1?new Set(['W']):mode==3?picked:new Set([...document.querySelectorAll('#spots input:checked')].map(i=>i.value))}
-let outBytes=null,zoom=1,asp=.77,zt=0,visMemo={},dragged=false,drag=null;
+let zoom=1,asp=.77,zt=0,visMemo={},dragged=false,drag=null;
 function layoutWrap(a){const vw=$('wrap').parentElement,aw=vw.clientWidth-32,ah=vw.clientHeight-32,fw=Math.max(120,Math.min(aw,ah*a)),W=fw*zoom;$('wrap').style.width=W+'px';$('zl').textContent=Math.round(zoom*100)+'%';return W}
 function setZoom(z,cx,cy){z=Math.max(1,Math.min(16,z));if(z==zoom)return;const wr=$('wrap'),vw=wr.parentElement,r=wr.getBoundingClientRect(),fx_=cx==null?.5:(cx-r.left)/r.width,fy_=cy==null?.5:(cy-r.top)/r.height;zoom=z;layoutWrap(asp);const r2=wr.getBoundingClientRect();vw.scrollLeft+=fx_*(r2.width-r.width);vw.scrollTop+=fy_*(r2.height-r.height);clearTimeout(zt);zt=setTimeout(render,200)}
 let view='orig',mj=null,maskBytes=null,allKeys=new Set();
@@ -350,6 +317,7 @@ function rchips(){$('rchips').innerHTML=rpicked.map((c,i)=>`<button class="chip"
 $('rchips').onclick=e=>{const b=e.target.closest('button');if(!b)return;b.dataset.i=='*'?rpicked=[]:rpicked.splice(+b.dataset.i,1);rchips()};
 const rgbOf=k=>[3,5,7].map(i=>parseInt(k.slice(i,i+2),16));
 $('tol').oninput=()=>$('tolv').textContent=$('tol').value;
+$('density').oninput=()=>$('densityv').textContent=$('density').value+'%';
 $('ov').onclick=e=>{if(dragged){dragged=false;return}if(view!='orig'||!vp||(mode!=3&&mode!=4))return;const ov=$('ov'),r=ov.getBoundingClientRect(),x=(e.clientX-r.left)*ov.width/r.width,y=(e.clientY-r.top)*ov.height/r.height,c=ov.getContext('2d');
  if(mode==4){const p=$('cv').getContext('2d').getImageData(Math.max(0,Math.min(ov.width-1,Math.round(x))),Math.max(0,Math.min(ov.height-1,Math.round(y))),1,1).data,col=[p[0],p[1],p[2]],i=rpicked.findIndex(q=>Math.hypot(q[0]-col[0],q[1]-col[1],q[2]-col[2])<6);i>=0?rpicked.splice(i,1):rpicked.push(col);$('pmsg').textContent=(i>=0?'Un-picked':'Picked')+' rgb('+col+')';rchips();return}
  c.setTransform(...vp.transform);let hit=null;const l=an[pi-1].shapes;
@@ -360,19 +328,17 @@ $('ov').onclick=e=>{if(dragged){dragged=false;return}if(view!='orig'||!vp||(mode
  if(tol&&hit[0]=='C'){const a=rgbOf(hit);allKeys.forEach(k=>{if(k[0]=='C'){const b=rgbOf(k);if(Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2])<=tol)grp.add(k)}})}
  const on=picked.has(hit);grp.forEach(k=>on?picked.delete(k):picked.add(k));
  $('pmsg').textContent=(on?'Un-picked ':'Picked ')+lbl(hit)+(grp.size>1?` + ${grp.size-1} similar colour(s)`:'');chips();draw()};
-async function analyseFile(B,skipG){const doc=await PDFDocument.load(B),A=doc.getPages().map(pg=>analyse(doc,pg));let ng=0,nt=0,err='';
- if(!skipG)try{const gr=await glyphs(pdfjsLib,B,A.length);gr.forEach((x,i)=>{A[i].shapes.push(...x.shapes);ng+=x.shapes.length;nt+=x.cnt});if(gr.err){nt=-1;err=gr.err}}catch(e){nt=-1;err=e.message}
+async function analyseFile(B){const doc=await PDFDocument.load(B),A=doc.getPages().map(pg=>analyse(doc,pg));let ng=0,nt=0,err='';
+ try{const gr=await glyphs(pdfjsLib,B,A.length);gr.forEach((x,i)=>{A[i].shapes.push(...x.shapes);ng+=x.shapes.length;nt+=x.cnt});if(gr.err){nt=-1;err=gr.err}}catch(e){nt=-1;err=e.message}
  return{A,ng,nt,err,ns:A.reduce((a,p)=>a+p.nst,0)}}
 async function load(file){
  $('info').textContent='Reading…';name=file.name.replace(/\.pdf$/i,'');resBytes=maskBytes=null;visMemo={};zoom=1;rpicked=[];rchips();view='orig';rj=mj=null;picked.clear();pi=1;
- try{bytes=new Uint8Array(await file.arrayBuffer());let conv=null,cerr='';outBytes=null;
-  if($('olc').checked){$('info').textContent='Outlining text & strokes…';try{conv=await outlineDoc(bytes);bytes=conv.out;outBytes=bytes}catch(e){cerr=e.message||String(e)}}
-  $('info').textContent='Analysing artwork…';
-  const r=await analyseFile(bytes,!!conv);if(conv){r.ng=conv.nG;r.ns=conv.nS;r.nt=conv.nt}else if(cerr){r.nt=-1;r.err=cerr}an=r.A;spots=new Map();allKeys=new Set();let w=0;
+ try{bytes=new Uint8Array(await file.arrayBuffer());$('info').textContent='Analysing & outlining text…';
+  const r=await analyseFile(bytes);an=r.A;spots=new Map();allKeys=new Set();let w=0;
   an.forEach(a=>a.shapes.forEach(s=>{allKeys.add(s.k);if(s.k=='W')w++;else if(s.k[0]=='S')spots.set(s.k,(spots.get(s.k)||0)+1)}));
   $('info').innerHTML=`${an.length} page(s) · ${r.ng} glyph(s) outlined · ${r.ns} stroke(s) converted to paths · ${w} white shape(s) · ${spots.size} spot colour(s)`+(r.nt!=0?`<br><span class="err">${r.nt<0?'Text outlining failed: '+r.err:r.nt+' text run(s) use non-embedded fonts and could not be outlined.'}</span>`:'');
   $('spots').innerHTML=spots.size?[...spots].map(([k,c])=>`<label class="row"><input type="checkbox" value="${k.replace(/"/g,'&quot;')}"><span>${k.slice(2).replace(/</g,'&lt;')} <span class="mut">(${c} shapes)</span></span></label>`).join(''):'<div class="mut" style="padding-top:8px">No spot colour fills found.</div>';
-  chips();for(const i of ['pcard','mcard','tcard','gcard'])$(i).hidden=false;$('sv').hidden=$('msv').hidden=$('tg').hidden=true;$('osv').hidden=!outBytes;
+  chips();for(const i of ['pcard','mcard','tcard','gcard'])$(i).hidden=false;$('sv').hidden=$('msv').hidden=$('tg').hidden=true;
   try{pj=await pdfjsLib.getDocument({data:bytes.slice(),disableWorker:true}).promise}catch(e){pj=null;$('pmsg').innerHTML='<span class="err">Preview unavailable: '+e.message+'</span>'}
   nav(0)}
  catch(e){$('info').innerHTML='<span class="err">Could not read PDF: '+e.message+'</span>'}}
@@ -383,7 +349,7 @@ $('f').onchange=e=>e.target.files[0]&&load(e.target.files[0]);
 function setMode(m){mode=m;[1,2,3,4].forEach(i=>{$('m'+i).classList.toggle('on',i==m);$('d'+i).hidden=i!=m});if(view!='orig'){view='orig';updTg();nav(0)}else draw()}
 [1,2,3,4].forEach(i=>$('m'+i).onclick=()=>setMode(i));
 $('spots').onchange=draw;
-const opts=()=>({dpi:+$('dpi').value||300,thr:Math.max(0,+$('thr').value||0),spread:+$('spr').value||0,stk:Math.max(0,parseFloat($('stk').value)||0),vis:$('vis').checked,inv:$('inv').checked,sname:$('sname').value.trim()||'5',grad:$('grad').value,cell:+$('cell').value||1,rtol:+$('rtol').value||40,rp:rpicked,alt:$('alt').value||'#ff2bd6'});
+const opts=()=>({dpi:+$('dpi').value||300,thr:Math.max(0,+$('thr').value||0),spread:+$('spr').value||0,stk:Math.max(0,parseFloat($('stk').value)||0),vis:$('vis').checked,inv:$('inv').checked,sname:$('sname').value.trim()||'5',grad:$('grad').value,cell:+$('cell').value||1,density:+$('density').value||0,rtol:+$('rtol').value||40,rp:rpicked,alt:$('alt').value||'#ff2bd6'});
 const cmyk=h=>{const r=parseInt(h.slice(1,3),16)/255,g=parseInt(h.slice(3,5),16)/255,b=parseInt(h.slice(5,7),16)/255,k=1-Math.max(r,g,b);return(k>=1?[0,0,0,1]:[(1-r-k)/(1-k),(1-g-k)/(1-k),(1-b-k)/(1-k),k]).map(v=>+v.toFixed(3))};
 function morph(a,W,H,r,dil){const pass=(n,len,ix)=>{const pre=new Int32Array(len+1);for(let l=0;l<n;l++){for(let i=0;i<len;i++)pre[i+1]=pre[i]+a[ix(l,i)];for(let i=0;i<len;i++){const lo=Math.max(0,i-r),hi=Math.min(len-1,i+r),s=pre[hi+1]-pre[lo];a[ix(l,i)]=dil?(s>0?1:0):(s==hi-lo+1?1:0)}}};
  pass(H,W,(l,i)=>l*W+i);pass(W,H,(l,i)=>i*W+l)}
@@ -410,7 +376,20 @@ async function makeMask(i,pd,o){
  const pg=await pd.getPage(i+1),sc=o.dpi/72,vw=pg.view[2]-pg.view[0],W=Math.min(16000,Math.ceil(vw*sc)),H=Math.min(16000,Math.ceil((pg.view[3]-pg.view[1])*sc));
  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true});x.fillStyle='#fff';x.fillRect(0,0,W,H);
  await pg.render({canvasContext:x,viewport:pg.getViewport({scale:W/vw,rotation:0})}).promise;
- const d=x.getImageData(0,0,W,H).data,a=binarize(d,W,H,o);
+ const d=x.getImageData(0,0,W,H).data;
+ if(o.grad==='continuous'){
+  // Keep the raster continuous: each 8-bit pixel is the tint value of the named Separation colour.
+  const bits=new Uint8Array(W*H),thr=Math.max(0,Math.min(100,o.thr))/100,gain=Math.max(0,Math.min(200,o.density))/100;
+  const cols=(o.rp||[]).map(c=>c.map(v=>255-v));let count=0;
+  for(let k=0;k<W*H;k++){
+   const j=k*4,r=255-d[j],g=255-d[j+1],b=255-d[j+2];let t;
+   if(cols.length){t=0;for(const c of cols){const cc=c[0]*c[0]+c[1]*c[1]+c[2]*c[2]||1;let u=(r*c[0]+g*c[1]+b*c[2])/cc;u=Math.max(0,Math.min(1,u));if(u>t&&Math.hypot(r-u*c[0],g-u*c[1],b-u*c[2])<=o.rtol)t=u}}
+   else t=Math.max(r,g,b)/255;
+   t=t<thr?0:Math.min(1,t*gain);let v=Math.round(t*255);if(o.inv)v=255-v;bits[k]=v;if(v>0)count++;
+  }
+  return{bits,w:W,h:H,view:pg.view,count,continuous:true};
+ }
+ const a=binarize(d,W,H,o);
  const r=Math.round(Math.abs(o.spread)/25.4*o.dpi);if(r>0)morph(a,W,H,r,o.spread>0);
  if(o.inv)for(let k=0;k<a.length;k++)a[k]^=1;
  const rb=(W+7)>>3,bits=new Uint8Array(rb*H).fill(255);let count=0;
@@ -426,14 +405,14 @@ async function build({B,A,S,mode:md,o,masks,maskOnly}){
   const od=D.lookup(K('Order'));if(od instanceof PDFArray)od.push(ocg);else D.set(K('Order'),ctx.obj([ocg]));
   const on=D.lookup(K('ON'));if(on instanceof PDFArray)on.push(ocg)}
  else cat.set(K('OCProperties'),ctx.obj({OCGs:[ocg],D:{Order:[ocg],ON:[ocg]}}));
- const cs=ctx.register(ctx.obj(['Separation',nm,'DeviceCMYK',{FunctionType:2,Domain:[0,1],C0:[0,0,0,0],C1:cmyk(o.alt),N:1}]));
+ const tintFn=ctx.obj({FunctionType:2,Domain:[0,1],C0:[0,0,0,0],C1:cmyk(o.alt),N:1});const cs=ctx.register(ctx.obj([PDFName.of('Separation'),PDFName.of(nm),PDFName.of('DeviceCMYK'),tintFn]));
  const gs=ctx.register(ctx.obj({Type:'ExtGState',Name:'GS5',OP:true,op:true,OPM:1})),lw=fx(o.stk*72/25.4),F=lw>0,OP=eo=>F?(eo?'B*':'B'):(eo?'f*':'f');
  let n=0;
  pages.forEach((pg,i)=>{
   pg.node.delete(PDFName.of('PieceInfo'));
   const blank=()=>{if(maskOnly)pg.node.set(PDFName.of('Contents'),ctx.register(ctx.stream('')))};
   const sh=A[i].shapes.filter(s=>S.has(s.k));let body,imRef,imName;
-  if(md==4){const k=masks[i];if(!k||!k.count)return blank();imRef=ctx.register(ctx.flateStream(k.bits,{Type:'XObject',Subtype:'Image',Width:k.w,Height:k.h,ImageMask:true,BitsPerComponent:1}));imName='ImS'+i;const[x0,y0,x1,y1]=k.view;body=`q ${x1-x0} 0 0 ${y1-y0} ${x0} ${y0} cm /${imName} Do Q`;n++}
+  if(md==4){const k=masks[i];if(!k||!k.count)return blank();imRef=ctx.register(ctx.flateStream(k.bits,k.continuous?{Type:'XObject',Subtype:'Image',Width:k.w,Height:k.h,ColorSpace:cs,BitsPerComponent:8,Decode:[0,1]}:{Type:'XObject',Subtype:'Image',Width:k.w,Height:k.h,ImageMask:true,BitsPerComponent:1}));imName='ImS'+i;const[x0,y0,x1,y1]=k.view;body=`q ${x1-x0} 0 0 ${y1-y0} ${x0} ${y0} cm /${imName} Do Q`;n++}
   else{const fillSel=md==1?!o.inv:o.inv;
    const VP=o.vis?visPaths(A[i].shapes,S):null;
    if(fillSel){if(!sh.length||VP==='')return blank();body=VP!==null?VP+'\n'+OP(1):sh.map(s=>s.p+' '+OP(s.eo)).join('\n')}
@@ -461,11 +440,11 @@ $('go').onclick=async()=>{const st=$('st');st.className='mut';st.textContent='Wo
   st.className='ok';st.textContent=`Done · ${mode==4?r1.n+' page(s) rasterised onto':r1.n+(mode==1&&!o.inv?' shape(s) on':' shape(s) cut from / filled on')} the spot “${o.sname}” layer. Use View to flip original / result / mask / overprint sim.`}
  catch(e){st.className='err';st.textContent='Failed: '+(e&&e.message||e)}};
 const doSave=async(b,suf)=>{if(!b)return;try{await saveBlob(name+suf,b)}catch(e){$('st').className='err';$('st').textContent=e&&e.code=='declined'?'Save cancelled.':'Save failed: '+(e&&e.message||e)}};
-$('osv').onclick=()=>doSave(outBytes,'-outlined.pdf');$('sv').onclick=()=>doSave(resBytes,'-spot5.pdf');$('msv').onclick=()=>doSave(maskBytes,'-spot5-maskonly.pdf');
+$('sv').onclick=()=>doSave(resBytes,'-spot5.pdf');$('msv').onclick=()=>doSave(maskBytes,'-spot5-maskonly.pdf');
 $('bt').onclick=()=>$('bf').click();
 $('bf').onchange=async e=>{const fs=[...e.target.files],st=$('st');let ok=0,bad=[];
  for(let k=0;k<fs.length;k++){const f=fs[k];st.className='mut';st.textContent=`Batch ${k+1}/${fs.length}: ${f.name}…`;
-  try{let B=new Uint8Array(await f.arrayBuffer()),cvd=false;if($('olc').checked){try{B=(await outlineDoc(B)).out;cvd=true}catch(e){}}const{A}=await analyseFile(B,cvd),o=opts(),md=mode;
+  try{const B=new Uint8Array(await f.arrayBuffer()),{A}=await analyseFile(B),o=opts(),md=mode;
    let S=md==1?new Set(['W']):md==3?new Set(picked):new Set([...document.querySelectorAll('#spots input:checked')].map(i=>i.value));
    if(md==3&&+$('tol').value){const ex=new Set(S);A.forEach(p=>p.shapes.forEach(s=>{if(s.k[0]=='C')for(const q of ex)if(q[0]=='C'&&Math.hypot(...rgbOf(q).map((v,j)=>v-rgbOf(s.k)[j]))<=+$('tol').value)S.add(s.k)}))}
    const pd=md==4?await pdfjsLib.getDocument({data:B.slice(),disableWorker:true}).promise:null,masks=md==4?await masksFor(pd,A.length,o,t=>st.textContent=`Batch ${k+1}/${fs.length}: ${t}`):null;
@@ -474,9 +453,9 @@ $('bf').onchange=async e=>{const fs=[...e.target.files],st=$('st');let ok=0,bad=
  st.className=bad.length?'err':'ok';st.textContent=`Batch done: ${ok} saved`+(bad.length?`, failed: ${bad.join('; ')}`:'');e.target.value=''};
 const PK='spot5.presets',getP=()=>{try{return JSON.parse(localStorage.getItem(PK)||'{}')}catch(e){return{}}};
 function listP(){const p=getP(),k=Object.keys(p);$('plist').innerHTML=k.length?k.map(x=>`<option>${x.replace(/</g,'&lt;')}</option>`).join(''):'<option value="">(none saved)</option>'}
-$('psave').onclick=()=>{const n=$('pname').value.trim();if(!n)return;const p=getP();p[n]={mode,dpi:$('dpi').value,thr:$('thr').value,spr:$('spr').value,stk:$('stk').value,vis:$('vis').checked,inv:$('inv').checked,tol:$('tol').value,sname:$('sname').value,alt:$('alt').value,picked:[...picked],rp:rpicked,grad:$('grad').value,cell:$('cell').value,rtol:$('rtol').value,spots:[...document.querySelectorAll('#spots input:checked')].map(i=>i.value)};
+$('psave').onclick=()=>{const n=$('pname').value.trim();if(!n)return;const p=getP();p[n]={mode,dpi:$('dpi').value,thr:$('thr').value,spr:$('spr').value,stk:$('stk').value,vis:$('vis').checked,inv:$('inv').checked,tol:$('tol').value,sname:$('sname').value,alt:$('alt').value,picked:[...picked],rp:rpicked,grad:$('grad').value,cell:$('cell').value,density:$('density').value,rtol:$('rtol').value,spots:[...document.querySelectorAll('#spots input:checked')].map(i=>i.value)};
  try{localStorage.setItem(PK,JSON.stringify(p))}catch(e){}listP();$('plist').value=n};
-$('pload').onclick=()=>{const p=getP()[$('plist').value];if(!p)return;['dpi','thr','spr','stk','tol','sname','alt'].forEach(k=>{if(p[k]!==undefined)$(k).value=p[k]});if(p.vis!==undefined)$('vis').checked=p.vis;$('inv').checked=p.inv;$('tolv').textContent=p.tol;picked=new Set(p.picked);rpicked=p.rp||[];['grad','cell','rtol'].forEach(k=>{if(p[k]!==undefined)$(k).value=p[k]});rchips();
+$('pload').onclick=()=>{const p=getP()[$('plist').value];if(!p)return;['dpi','thr','spr','stk','tol','sname','alt'].forEach(k=>{if(p[k]!==undefined)$(k).value=p[k]});if(p.vis!==undefined)$('vis').checked=p.vis;$('inv').checked=p.inv;$('tolv').textContent=p.tol;picked=new Set(p.picked);rpicked=p.rp||[];['grad','cell','density','rtol'].forEach(k=>{if(p[k]!==undefined)$(k).value=p[k]});$('densityv').textContent=$('density').value+'%';rchips();
  document.querySelectorAll('#spots input').forEach(i=>i.checked=p.spots.includes(i.value));setMode(p.mode);chips();draw()};
 $('zi').onclick=()=>setZoom(zoom*1.5);$('zo').onclick=()=>setZoom(zoom/1.5);
 $('zf').onclick=()=>{zoom=1;const vw=$('wrap').parentElement;vw.scrollLeft=vw.scrollTop=0;layoutWrap(asp);render()};
