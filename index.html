@@ -5,12 +5,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
+<script>try{var _k=localStorage.getItem("sr-skin");if(_k)document.documentElement.dataset.skin=_k}catch(e){}</script>
 <style>
 :root{color-scheme:dark;--bg:#0e1116;--well:#0b0d11;--panel:#161a20;--panel2:#1c2129;--field:#0c0f13;--line:#262d37;--line2:#333b47;
 --tx:#e7eaef;--mut:#9aa3b2;--dim:#6b7486;--m7:#e6007e;--c8:#22cbe9;--c8bg:#0d333c;--warn:#ffb020;
 --m7hi:#ff1a92;--m7lo:#c4006a;--onm7:#fff;--glow:34,203,233;--err:#ff6b6b;--shadow:0,0,0;--hover:#43505f;--thumb:#333c49;
 --arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239aa3b2' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
---gridbg:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);
+--grid:255,255,255;--ga:.03;--gb:.055;--gridbg:linear-gradient(rgba(var(--grid),var(--ga)) 1px,transparent 1px),linear-gradient(90deg,rgba(var(--grid),var(--ga)) 1px,transparent 1px),linear-gradient(rgba(var(--grid),var(--gb)) 1px,transparent 1px),linear-gradient(90deg,rgba(var(--grid),var(--gb)) 1px,transparent 1px);
 --ui:"Segoe UI Variable Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
 --head:"Bahnschrift SemiCondensed","Bahnschrift","Segoe UI Variable Display","Segoe UI",Roboto,sans-serif;
 --num:"Cascadia Mono","Cascadia Code",Consolas,"Roboto Mono","DejaVu Sans Mono",monospace}
@@ -126,8 +127,39 @@ label.row:last-child{border-bottom:0}
 .err{color:var(--err)}.ok{color:var(--c8)}
 
 @media(max-width:880px){body{overflow:auto;height:auto}.app{grid-template-columns:1fr;grid-template-rows:52px auto minmax(70vh,auto);height:auto}header{grid-column:1}.side{border-right:0;border-bottom:1px solid var(--line);overflow:visible}#cv{max-height:70vh}.view{padding:16px}}
+
+/* SKIN SWITCHER */
+#skins{margin-left:auto;display:flex;gap:8px;align-items:center}
+#skins button{width:22px;height:22px;min-width:22px;padding:0;border-radius:50%!important;border:2px solid var(--line2);cursor:pointer;background:linear-gradient(135deg,var(--s1) 50%,var(--s2) 50%)}
+#skins button:hover{border-color:var(--tx)}
+#skins button[aria-pressed=true]{outline:2px solid var(--c8);outline-offset:2px;border-color:var(--panel)}
+
+/* SKINS */
+:root[data-skin=light]{color-scheme:light;--bg:#eef1f5;--well:#d3d9e1;--panel:#ffffff;--panel2:#f3f5f8;--field:#ffffff;--line:#dde2e9;--line2:#c3cad4;--tx:#18202b;--mut:#566273;--dim:#8793a3;--m7:#d6006f;--c8:#0a7fa0;--c8bg:#dff3f8;--warn:#b86e00;--m7hi:#f0007f;--m7lo:#b0005b;--onm7:#fff;--glow:10,127,160;--err:#c62828;--shadow:30,45,70;--hover:#9fabb9;--guide:214,0,111;--grid:20,30,50;--ga:.06;--gb:.1;--thumb:#c3cad4;--arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23566273' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+:root[data-skin=neon]{color-scheme:dark;--bg:#0a0612;--well:#070411;--panel:#120a22;--panel2:#1a0f33;--field:#0b0618;--line:#2b1a52;--line2:#43297d;--tx:#f4eeff;--mut:#b7a6e6;--dim:#7e6bb5;--m7:#ff2bd6;--c8:#00f0ff;--c8bg:#06303a;--warn:#fff200;--m7hi:#ff66e6;--m7lo:#c800a4;--onm7:#fff;--glow:0,240,255;--err:#ff4d6d;--shadow:0,0,0;--hover:#6a47c0;--guide:255,0,170;--grid:180,120,255;--ga:.05;--gb:.09;--thumb:#43297d;--arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23b7a6e6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+:root[data-skin=bauhaus]{color-scheme:light;--bg:#f2efe6;--well:#f7c600;--panel:#f2efe6;--panel2:#ffffff;--field:#ffffff;--line:#111111;--line2:#111111;--tx:#111111;--mut:#444444;--dim:#666666;--m7:#e63222;--c8:#1d3fbb;--c8bg:#dde5ff;--warn:#b45309;--m7hi:#ff4433;--m7lo:#b81f12;--onm7:#fff;--glow:29,63,187;--err:#e63222;--shadow:17,17,17;--hover:#111111;--guide:230,50,34;--grid:17,17,17;--ga:.12;--gb:.22;--thumb:#111111;--arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23444444' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+:root[data-skin=blueprint]{color-scheme:dark;--bg:#0b2a4a;--well:#0a2342;--panel:#0f335c;--panel2:#143e6c;--field:#0a2747;--line:#245585;--line2:#3b72a6;--tx:#eaf4ff;--mut:#a8c8e8;--dim:#7ea3c8;--m7:#ffd23f;--c8:#7fd4ff;--c8bg:#0f4a7a;--warn:#ffd23f;--m7hi:#ffe27a;--m7lo:#d9a800;--onm7:#0b2a4a;--glow:127,212,255;--err:#ff8a80;--shadow:0,0,0;--hover:#5b92c4;--guide:0,90,200;--grid:200,230,255;--ga:.05;--gb:.1;--thumb:#3b72a6;--arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a8c8e8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+:root[data-skin=neon] header{border-bottom-color:var(--m7);box-shadow:0 1px 18px rgba(255,43,214,.35)}
+:root[data-skin=neon] h1{text-shadow:0 0 12px rgba(0,240,255,.65)}
+:root[data-skin=neon] .go:not(.alt){box-shadow:0 0 18px rgba(255,43,214,.6)}
+:root[data-skin=neon] .modes button.on,:root[data-skin=neon] #tg{box-shadow:0 0 10px rgba(0,240,255,.4)}
+:root[data-skin=neon] #wrap{box-shadow:0 0 0 1px var(--line2),0 0 40px rgba(255,43,214,.25)}
+:root[data-skin=bauhaus] *{border-radius:0!important}
+:root[data-skin=bauhaus] #skins button{border-radius:50%!important}
+:root[data-skin=bauhaus] header{background:#111;border-bottom:4px solid var(--m7)}
+:root[data-skin=bauhaus] h1{color:#f2efe6}
+:root[data-skin=bauhaus] .badge{color:#f2efe6;border-color:#f2efe6}
+:root[data-skin=bauhaus] .side{border-right:4px solid #111}
+:root[data-skin=bauhaus] input,:root[data-skin=bauhaus] select,:root[data-skin=bauhaus] .modes button,:root[data-skin=bauhaus] .sm,:root[data-skin=bauhaus] .sm2,:root[data-skin=bauhaus] .chip,:root[data-skin=bauhaus] .go.alt,:root[data-skin=bauhaus] #spots{border-width:2px}
+:root[data-skin=bauhaus] .go{border:2px solid #111;box-shadow:4px 4px 0 #111;transition:transform .12s,box-shadow .12s,background .12s}
+:root[data-skin=bauhaus] .go:hover{box-shadow:6px 6px 0 #111;transform:translate(-2px,-2px)}
+:root[data-skin=bauhaus] .go:active{box-shadow:1px 1px 0 #111;transform:translate(3px,3px)}
+:root[data-skin=bauhaus] .go.alt{box-shadow:none;transform:none}
+:root[data-skin=bauhaus] #wrap{border:3px solid #111;box-shadow:8px 8px 0 #111}
+:root[data-skin=bauhaus] #empty,:root[data-skin=bauhaus] #empty p,:root[data-skin=bauhaus] #empty h2{color:#111}
+:root[data-skin=bauhaus] #empty h2,:root[data-skin=bauhaus] .lab{text-transform:uppercase;font-weight:800;letter-spacing:.6px}
 </style></head><body><div class="app">
-<header><div class="logo"><span></span><span></span><span></span><span></span></div><h1>Spot <b>5</b> Layer</h1><span class="badge">PDF spot colour overprint studio</span></header>
+<header><div class="logo"><span></span><span></span><span></span><span></span></div><h1>Spot <b>5</b> Layer</h1><span class="badge">PDF spot colour overprint studio</span><div id="skins" role="group" aria-label="Colour skin"><button type="button" data-skin="workbench" title="Workbench (dark)" aria-label="Workbench (dark)" aria-pressed="false" style="--s1:#161a20;--s2:#e6007e"></button><button type="button" data-skin="light" title="Light" aria-label="Light" aria-pressed="false" style="--s1:#ffffff;--s2:#d6006f"></button><button type="button" data-skin="neon" title="Neon" aria-label="Neon" aria-pressed="false" style="--s1:#120a22;--s2:#ff2bd6"></button><button type="button" data-skin="bauhaus" title="Bauhaus" aria-label="Bauhaus" aria-pressed="false" style="--s1:#f7c600;--s2:#e63222"></button><button type="button" data-skin="blueprint" title="Blueprint" aria-label="Blueprint" aria-pressed="false" style="--s1:#0f335c;--s2:#ffd23f"></button></div></header>
 <aside class="side">
  <div class="card"><p class="lab"><i>01</i>Artwork</p><input type="file" id="f" accept="application/pdf"><div id="info">Drop in a PDF to begin.</div></div>
  <div class="card" id="mcard" hidden><p class="lab"><i>02</i>Mode</p>
@@ -522,4 +554,17 @@ window.addEventListener('resize',()=>layoutWrap(asp));
  ov.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)dragged=true;if(dragged){vw.scrollLeft=drag.sl-dx;vw.scrollTop=drag.st-dy}};
  ov.onpointerup=ov.onpointercancel=()=>{drag=null}}
 listP();rchips();
-</script></body></html>
+</script><script>
+(function(){
+ function applySkin(name,save){
+  var root=document.documentElement,btns=[].slice.call(document.querySelectorAll('#skins button'));
+  if(!btns.some(function(b){return b.dataset.skin===name}))name='workbench';
+  if(name==='workbench')delete root.dataset.skin;else root.dataset.skin=name;
+  btns.forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.skin===name))});
+  if(save){try{localStorage.setItem('sr-skin',name)}catch(_){}}
+ }
+ document.getElementById('skins').addEventListener('click',function(e){var b=e.target.closest('button');if(b)applySkin(b.dataset.skin,true)});
+ applySkin(document.documentElement.dataset.skin||'workbench',false);
+})();
+</script>
+</body></html>
